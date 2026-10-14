@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <title>YSU Capstone 2</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 28px; }
+      main { width: min(720px, 100%); }
+      .eyebrow { color: #5267d8; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+      h1 { margin: 12px 0; font-size: clamp(34px, 7vw, 56px); letter-spacing: -.055em; }
+      .intro { max-width: 540px; color: #667085; line-height: 1.7; }
+      .card { margin-top: 30px; padding: 24px; border: 1px solid #e5e9f2; border-radius: 20px; background: white; box-shadow: 0 14px 50px #2632520d; }
+      .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+      .label { font-weight: 700; }
+      .status { display: inline-flex; align-items: center; gap: 8px; color: #667085; font-size: 14px; }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: #aab2c3; }
+      .dot.good { background: #13a675; box-shadow: 0 0 0 4px #13a6751a; }
+      .dot.bad { background: #e04f5f; }
+      button { margin-top: 22px; border: 0; border-radius: 11px; padding: 12px 17px; color: white; background: #4358d6; font: inherit; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .65; cursor: wait; }
+      .foot { margin-top: 18px; color: #8992a5; font-size: 13px; line-height: 1.6; }
+      code { color: #4755a5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Yeonsung University · Capstone 2</div>
+      <h1>프로젝트 연결 상태</h1>
+      <p class="intro">웹 클라이언트에서 Vercel 서버 API를 거쳐 Supabase에 연결합니다. 아래 버튼으로 현재 서버와 데이터 API의 응답을 확인할 수 있습니다.</p>
+      <section class="card" aria-live="polite">
+        <div class="row"><span class="label">Vercel 서버 → Supabase</span><span class="status"><i id="dot" class="dot"></i><span id="status">확인 전</span></span></div>
+        <button id="check" type="button">연결 확인</button>
+        <p id="detail" class="foot">확인할 때 API 키는 브라우저에 노출되지 않고 서버에서만 사용됩니다.</p>
+      </section>
+      <p class="foot">현재는 연결 확인용 기본 화면입니다. 서비스 기능과 데이터 테이블은 아직 추가되지 않았습니다.</p>
+    </main>
+    <script>
+      const button = document.querySelector('#check');
+      const status = document.querySelector('#status');
+      const detail = document.querySelector('#detail');
+      const dot = document.querySelector('#dot');
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        status.textContent = '확인 중';
+        detail.textContent = '서버에서 Supabase 응답을 기다리고 있습니다.';
+        dot.className = 'dot';
+        try {
+          const response = await fetch('/api/status', { cache: 'no-store' });
+          const result = await response.json();
+          if (!response.ok || !result.ok) throw new Error(result.message || '연결에 실패했습니다.');
+          status.textContent = '정상 연결';
+          detail.textContent = 'Vercel 서버가 Supabase Data API에서 정상 응답을 받았습니다.';
+          dot.className = 'dot good';
+        } catch (error) {
+          status.textContent = '연결 실패';
+          detail.textContent = error.message || '서버 응답을 확인하지 못했습니다.';
+          dot.className = 'dot bad';
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
