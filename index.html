@@ -3,66 +3,1139 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f5f7fb" />
-    <title>YSU Capstone 2</title>
+    <meta name="theme-color" content="#1e40af" />
+    <title>행복구청 24시 스마트 민원 안내 AI (행복톡톡)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
     <style>
-      :root { color-scheme: light; font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
-      * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 28px; }
-      main { width: min(720px, 100%); }
-      .eyebrow { color: #5267d8; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
-      h1 { margin: 12px 0; font-size: clamp(34px, 7vw, 56px); letter-spacing: -.055em; }
-      .intro { max-width: 540px; color: #667085; line-height: 1.7; }
-      .card { margin-top: 30px; padding: 24px; border: 1px solid #e5e9f2; border-radius: 20px; background: white; box-shadow: 0 14px 50px #2632520d; }
-      .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-      .label { font-weight: 700; }
-      .status { display: inline-flex; align-items: center; gap: 8px; color: #667085; font-size: 14px; }
-      .dot { width: 9px; height: 9px; border-radius: 50%; background: #aab2c3; }
-      .dot.good { background: #13a675; box-shadow: 0 0 0 4px #13a6751a; }
-      .dot.bad { background: #e04f5f; }
-      button { margin-top: 22px; border: 0; border-radius: 11px; padding: 12px 17px; color: white; background: #4358d6; font: inherit; font-weight: 700; cursor: pointer; }
-      button:disabled { opacity: .65; cursor: wait; }
-      .foot { margin-top: 18px; color: #8992a5; font-size: 13px; line-height: 1.6; }
-      code { color: #4755a5; }
+      :root {
+        --primary: #1d4ed8;
+        --primary-light: #eff6ff;
+        --primary-dark: #1e3a8a;
+        --accent: #0284c7;
+        --success: #059669;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius: 14px;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 헤더 */
+      header {
+        background: white;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .nav-container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .logo-badge {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        color: white;
+        font-size: 20px;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      }
+      .brand-title {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .system-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #047857;
+      }
+      .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+      }
+
+      /* 메인 컨테이너 */
+      main {
+        max-width: 1140px;
+        margin: 24px auto;
+        padding: 0 20px;
+        flex: 1;
+        width: 100%;
+      }
+
+      /* 탭 네비게이션 */
+      .tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 24px;
+        overflow-x: auto;
+      }
+      .tab-btn {
+        padding: 12px 18px;
+        border: none;
+        background: none;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        white-space: nowrap;
+        transition: color 0.15s;
+      }
+      .tab-btn:hover { color: var(--primary); }
+      .tab-btn.active {
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        background: var(--primary);
+        border-radius: 2px;
+      }
+
+      /* 섹션 공통 */
+      .tab-content { display: none; }
+      .tab-content.active { display: block; animation: fadeIn 0.25s ease-out; }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* 슬로건 배너 */
+      .banner {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-radius: var(--radius);
+        padding: 22px 28px;
+        color: white;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        box-shadow: 0 10px 25px -5px rgba(29, 78, 216, 0.25);
+      }
+      .banner-tag {
+        display: inline-block;
+        padding: 3px 9px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+      }
+      .banner-h { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+      .banner-p { font-size: 13.5px; opacity: 0.9; margin-top: 4px; }
+      .banner-stats {
+        display: flex;
+        gap: 20px;
+        background: rgba(255, 255, 255, 0.12);
+        padding: 10px 18px;
+        border-radius: 10px;
+        backdrop-filter: blur(8px);
+      }
+      .stat-item { text-align: center; }
+      .stat-val { font-size: 18px; font-weight: 800; }
+      .stat-lbl { font-size: 11px; opacity: 0.8; }
+
+      /* 챗봇 화면 레이아웃 */
+      .chat-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .chat-wrapper { grid-template-columns: 1fr; }
+      }
+
+      .chat-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        height: 640px;
+      }
+      .chat-header {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-header h3 { font-size: 14.5px; font-weight: 700; color: #1e293b; }
+      .chat-mode-pill {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #1d4ed8;
+        background: #dbeafe;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+
+      /* 챗봇 메시지 영역 */
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: #f8fafc;
+      }
+      .msg {
+        display: flex;
+        gap: 10px;
+        max-width: 82%;
+      }
+      .msg.bot { align-self: flex-start; }
+      .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .msg.bot .avatar { background: #2563eb; color: white; }
+      .msg.user .avatar { background: #64748b; color: white; }
+      .bubble {
+        padding: 12px 16px;
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .msg.bot .bubble {
+        background: white;
+        border: 1px solid var(--border);
+        color: #1e293b;
+        box-shadow: var(--shadow-sm);
+        border-top-left-radius: 4px;
+      }
+      .msg.user .bubble {
+        background: #2563eb;
+        color: white;
+        border-top-right-radius: 4px;
+      }
+
+      /* 답변 부가 카드 */
+      .ans-meta-card {
+        margin-top: 10px;
+        padding: 12px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        font-size: 12.5px;
+        border-left: 3px solid var(--primary);
+      }
+      .ans-meta-card b { color: #0f172a; display: block; margin-bottom: 3px; }
+      .confidence-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 11.5px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .conf-high { background: #dcfce7; color: #15803d; }
+      .conf-low { background: #fee2e2; color: #b91c1c; }
+
+      /* 저확신 이관 안내 카드 */
+      .transfer-card {
+        margin-top: 12px;
+        padding: 14px;
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        border-radius: 10px;
+      }
+      .transfer-card h4 {
+        color: #be123c;
+        font-size: 13.5px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .transfer-card p { font-size: 12.5px; color: #4c0519; margin-bottom: 10px; }
+      .btn-transfer {
+        width: 100%;
+        padding: 9px;
+        background: #e11d48;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .btn-transfer:hover { background: #be123c; }
+
+      /* 챗봇 입력창 */
+      .chat-input-area {
+        padding: 14px 18px;
+        background: white;
+        border-top: 1px solid var(--border);
+      }
+      .quick-chips {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        scrollbar-width: none;
+      }
+      .quick-chips::-webkit-scrollbar { display: none; }
+      .chip {
+        padding: 6px 11px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #334155;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .chip:hover {
+        background: var(--primary-light);
+        border-color: #bfdbfe;
+        color: var(--primary);
+      }
+      .chip.warn {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        color: #be123c;
+      }
+      .input-box {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .input-box input {
+        flex: 1;
+        padding: 11px 15px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        outline: none;
+        font-family: inherit;
+        transition: border 0.15s;
+      }
+      .input-box input:focus { border-color: var(--primary); }
+      .btn-send {
+        padding: 0 18px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* 우측 가이드 사이드바 */
+      .guide-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .side-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow-sm);
+      }
+      .side-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #0f172a; }
+      .principle-list { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: #475569; }
+      .principle-list li { display: flex; gap: 8px; align-items: flex-start; }
+      .check-icon { color: #16a34a; font-weight: 700; }
+
+      /* 창구 대기 현황 탭 스타일 */
+      .counter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+        margin-top: 16px;
+      }
+      .counter-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+      }
+      .counter-card.crowded { border-top: 4px solid var(--danger); }
+      .counter-card.normal { border-top: 4px solid var(--warning); }
+      .counter-card.free { border-top: 4px solid var(--success); }
+      .counter-dept { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+      .counter-name { font-size: 16px; font-weight: 800; margin: 4px 0 14px; }
+      .counter-num-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 12px 14px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+      }
+      .num-val { font-size: 26px; font-weight: 900; color: #1e293b; }
+      .wait-pill {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+      }
+      .pill-danger { background: #fee2e2; color: #b91c1c; }
+      .pill-success { background: #dcfce7; color: #15803d; }
+      .pill-warn { background: #fef3c7; color: #b45309; }
+
+      /* 조회 탭 스타일 */
+      .lookup-container {
+        max-width: 680px;
+        margin: 30px auto;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 32px;
+        box-shadow: var(--shadow-sm);
+      }
+      .lookup-result-card {
+        margin-top: 24px;
+        padding: 20px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: none;
+      }
+
+      /* 관리자 대시보드 탭 */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .metric-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+      }
+      .metric-lbl { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
+      .metric-num { font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 6px; }
+
+      .table-box {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin-top: 20px;
+      }
+      .table-header-box { padding: 14px 18px; border-bottom: 1px solid var(--border); background: #fafafa; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+      th { background: #f8fafc; color: #475569; font-weight: 600; }
+
+      /* 모달 */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        display: none;
+        place-items: center;
+        z-index: 100;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+      }
+      .modal-box {
+        background: white;
+        border-radius: 18px;
+        width: min(520px, 100%);
+        padding: 26px;
+        box-shadow: var(--shadow-lg);
+        animation: scaleUp 0.2s ease-out;
+      }
+      @keyframes scaleUp {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .form-group { margin-bottom: 14px; }
+      .form-group label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 5px; color: #334155; }
+      .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 13.5px;
+      }
+      .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+      /* 푸터 */
+      footer {
+        background: white;
+        border-top: 1px solid var(--border);
+        padding: 20px;
+        text-align: center;
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: auto;
+      }
     </style>
   </head>
   <body>
+    <!-- 상단 헤더 -->
+    <header>
+      <div class="nav-container">
+        <a href="#" class="logo-area">
+          <div class="logo-badge">🏛️</div>
+          <div>
+            <div class="brand-title">행복구청 24시 스마트 민원 안내 AI <span style="font-size: 12px; color: #2563eb; background:#eff6ff; padding: 2px 6px; border-radius: 4px;">행복톡톡</span></div>
+            <div class="brand-sub">연성대학교 컴퓨터소프트웨어과 · 클라우드 캡스톤디자인 4조</div>
+          </div>
+        </a>
+        <div class="system-status-pill">
+          <span class="pulse-dot"></span>
+          <span>Supabase 클라우드 실시간 연동</span>
+        </div>
+      </div>
+    </header>
+
     <main>
-      <div class="eyebrow">Yeonsung University · Capstone 2</div>
-      <h1>프로젝트 연결 상태</h1>
-      <p class="intro">웹 클라이언트에서 Vercel 서버 API를 거쳐 Supabase에 연결합니다. 아래 버튼으로 현재 서버와 데이터 API의 응답을 확인할 수 있습니다.</p>
-      <section class="card" aria-live="polite">
-        <div class="row"><span class="label">Vercel 서버 → Supabase</span><span class="status"><i id="dot" class="dot"></i><span id="status">확인 전</span></span></div>
-        <button id="check" type="button">연결 확인</button>
-        <p id="detail" class="foot">확인할 때 API 키는 브라우저에 노출되지 않고 서버에서만 사용됩니다.</p>
+      <!-- 슬로건 배너 -->
+      <div class="banner">
+        <div>
+          <span class="banner-tag">PROJECT MISSION</span>
+          <div class="banner-h">"확신 없으면 사람에게, 확실하면 24시간 챗봇이"</div>
+          <p class="banner-p">정형 민원은 24시간 즉시 안내하고, 판단이 어려운 복합 민원은 환각 없이 전문 담당자에게 정확히 이관합니다.</p>
+        </div>
+        <div class="banner-stats">
+          <div class="stat-item">
+            <div class="stat-val" id="bannerRate">84.2%</div>
+            <div class="stat-lbl">자체 완결률</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">24시</div>
+            <div class="stat-lbl">무중단 응대</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">0건</div>
+            <div class="stat-lbl">오안내(환각) 방지</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 메뉴 -->
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="chat">💬 24시 AI 민원 챗봇</button>
+        <button class="tab-btn" data-tab="counters">🏢 창구 실시간 대기 현황</button>
+        <button class="tab-btn" data-tab="lookup">🔍 민원 접수·처리 조회</button>
+        <button class="tab-btn" data-tab="stats">📊 관리자 모니터링</button>
+      </nav>
+
+      <!-- 1. AI 챗봇 탭 -->
+      <section id="tab-chat" class="tab-content active">
+        <div class="chat-wrapper">
+          <div class="chat-card">
+            <div class="chat-header">
+              <h3>행복구청 실시간 민원 안내 상담실</h3>
+              <span class="chat-mode-pill">RAG 지식베이스 가동중</span>
+            </div>
+
+            <div class="chat-messages" id="chatBox">
+              <div class="msg bot">
+                <div class="avatar">🤖</div>
+                <div class="bubble">
+                  안녕하세요! 행복구청 24시간 스마트 민원 챗봇 <b>행복톡톡</b>입니다. 😊<br/><br/>
+                  주민등록 등·초본, 인감증명서, 여권 발급, 대형폐기물 스티커 배출 등 궁금한 행정 민원을 자유롭게 질문해 주세요.<br/>
+                  신뢰할 수 없는 모호한 질문은 추측하지 않고 전문 담당자에게 안전하게 연결해 드립니다.
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-area">
+              <div class="quick-chips">
+                <button class="chip" onclick="askQuick('주민등록등본 발급 서류랑 수수료 알려줘')">📄 주민등록등본 발급</button>
+                <button class="chip" onclick="askQuick('인감증명서 대리인 발급 구비서류')">📑 인감증명서 대리 발급</button>
+                <button class="chip" onclick="askQuick('여권 야간 발급 가능한가요?')">✈️ 여권 야간 창구 운영</button>
+                <button class="chip" onclick="askQuick('대형폐기물 스티커 구매 방법')">🛋️ 대형폐기물 스티커</button>
+                <button class="chip warn" onclick="askQuick('이웃집 불법 건축물 때문에 일조권 침해가 심한데 강제 철거 가능한가요?')">⚠️ [테스트] 저확신·복합 민원 이관</button>
+              </div>
+              <form class="input-box" id="chatForm">
+                <input type="text" id="userInput" placeholder="민원 내용을 입력해 주세요 (예: 여권 발급 준비물)" autocomplete="off" />
+                <button type="submit" class="btn-send" id="sendBtn">전송</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- 사이드 안내 카드 -->
+          <div class="guide-panel">
+            <div class="side-card">
+              <h4>🎯 챗봇 응대 핵심 원칙</h4>
+              <ul class="principle-list">
+                <li><span class="check-icon">✓</span> <span><b>근거 기반 팩트 안내 (FR-1)</b>: 행복구청 공인 편람 및 매뉴얼 지식베이스에서만 답변</span></li>
+                <li><span class="check-icon">✓</span> <span><b>환각(오답) 제로화 (FR-2)</b>: 검색 신뢰도 65점 미만 시 임의 답변 중단 및 담당자 이관</span></li>
+                <li><span class="check-icon">✓</span> <span><b>맥락 보존 이관 (FR-3)</b>: 챗봇과 나눈 질의 내용을 요약하여 상담 공무원에게 전달</span></li>
+                <li><span class="check-icon">✓</span> <span><b>다채널 상담 예약</b>: 전화 상담, 방문 창구 예약, 실시간 채팅 지원</span></li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <h4>📍 행복구청 민원콜센터</h4>
+              <p style="font-size: 13px; color: #475569; margin-top: 4px;">
+                대표전화: <b>031-120-0001</b><br/>
+                상담시간: 평일 09:00 ~ 18:00<br/>
+                야간여권: 매주 목요일 20:00까지 연장 운영
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
-      <p class="foot">현재는 연결 확인용 기본 화면입니다. 서비스 기능과 데이터 테이블은 아직 추가되지 않았습니다.</p>
+
+      <!-- 2. 창구 실시간 대기 현황 탭 -->
+      <section id="tab-counters" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h2 style="font-size: 19px; font-weight: 800;">관내 창구 실시간 대기 현황 (FR-5)</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">행복구청 본청 및 관내 동 주민센터 창구별 혼잡도를 실시간으로 안내합니다.</p>
+          </div>
+          <button onclick="loadCounters()" class="chip" style="font-weight: 600;">🔄 새로고침</button>
+        </div>
+
+        <div id="recommendedBanner" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13.5px; color: #065f46; display: flex; align-items: center; gap: 8px;">
+          <span>💡 <b>추천 창구</b>: 대기 인원이 가장 적은 창구를 분석 중입니다.</span>
+        </div>
+
+        <div class="counter-grid" id="counterList">
+          <div style="padding: 30px; text-align: center; color: var(--text-muted); grid-column: 1/-1;">창구 현황을 불러오는 중입니다...</div>
+        </div>
+      </section>
+
+      <!-- 3. 민원 접수·처리 조회 탭 -->
+      <section id="tab-lookup" class="tab-content">
+        <div class="lookup-container">
+          <h2 style="font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 8px;">민원 처리 진행 상태 조회 (프로세스 6)</h2>
+          <p style="font-size: 13.5px; color: var(--text-muted); text-align: center; margin-bottom: 24px;">접수 시 발급받으신 민원 접수번호로 현재 처리 단계와 결과를 실시간 확인하실 수 있습니다.</p>
+
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="lookupInput" class="form-control" placeholder="접수번호를 입력하세요 (예: YSU-20261014-1234)" />
+            <button onclick="lookupComplaint()" class="btn-send" style="padding: 10px 24px; font-size: 14px;">조회하기</button>
+          </div>
+
+          <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+            테스트용 빠른 조회: <button onclick="quickLookup('YSU-20261014-9901')" style="background: none; border: none; color: #2563eb; cursor: pointer; text-decoration: underline;">[샘플 번호 입력]</button>
+          </div>
+
+          <div class="lookup-result-card" id="lookupResult">
+            <!-- 조회 결과 출력 영역 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 관리자 모니터링 탭 -->
+      <section id="tab-stats" class="tab-content">
+        <div style="margin-bottom: 16px;">
+          <h2 style="font-size: 19px; font-weight: 800;">민원 행정 모니터링 대시보드 (FR-4)</h2>
+          <p style="font-size: 13px; color: var(--text-muted);">한도윤 민원팀장 모니터링 뷰: 챗봇 자체 완결률, 이관 현황 및 일자별 인입 지표를 집계합니다.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="metric-card">
+            <div class="metric-lbl">누적 민원 인입</div>
+            <div class="metric-num" id="statTotal">959건</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">챗봇 자체 완결 건수</div>
+            <div class="metric-num" style="color: #059669;" id="statResolved">789건</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">전문 상담 이관 건수</div>
+            <div class="metric-num" style="color: #dc2626;" id="statTransferred">170건</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">챗봇 자체 완결률 (목표 80%+)</div>
+            <div class="metric-num" style="color: #2563eb;" id="statRate">84.2%</div>
+          </div>
+        </div>
+
+        <div class="table-box">
+          <div class="table-header-box">최근 인입된 민원 질의 로그 (실시간 RAG 응대 및 이관 감지)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>일시</th>
+                <th>질의 내용</th>
+                <th>신뢰도</th>
+                <th>처리 상태</th>
+                <th>채널</th>
+              </tr>
+            </thead>
+            <tbody id="sessionLogs">
+              <tr><td colspan="5" style="text-align: center; padding: 20px;">데이터를 불러오는 중입니다...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
+
+    <!-- 담당자 상담 예약 모달 -->
+    <div class="modal-backdrop" id="reserveModal">
+      <div class="modal-box">
+        <h3 style="font-size: 17px; font-weight: 800; color: #be123c; margin-bottom: 6px;">전문 민원 담당자 상담 예약 (FR-2 / FR-3)</h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 18px;">질의하신 내용이 요약되어 소관 부서 담당자에게 전달됩니다. 연락처와 희망 일시를 남겨주세요.</p>
+
+        <form id="reserveForm">
+          <input type="hidden" id="modalSessionId" />
+          <div class="form-group">
+            <label>민원인 성함</label>
+            <input type="text" id="modalName" class="form-control" required placeholder="예: 홍길동" />
+          </div>
+          <div class="form-group">
+            <label>연락처 (휴대전화 번호)</label>
+            <input type="tel" id="modalTel" class="form-control" required placeholder="010-0000-0000" />
+          </div>
+          <div class="form-group">
+            <label>상담 희망 방식</label>
+            <select id="modalType" class="form-control">
+              <option value="전화상담">📞 담당 공무원 전화 상담 (근무시간 내 회신)</option>
+              <option value="방문상담">🏢 관내 창구 대면 방문 예약 (사전 예약 대기 면제)</option>
+              <option value="채팅상담">💬 온라인 실시간 1:1 채팅 상담실</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>배정 부서</label>
+            <select id="modalDept" class="form-control">
+              <option value="D01">종합민원과 (여권, 제증명)</option>
+              <option value="D02">세무1과 (지방세, 취득세)</option>
+              <option value="D03">건축과 (건축인허가, 불법건축물)</option>
+              <option value="D04">행복1동 주민센터</option>
+              <option value="D05">행복2동 주민센터</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>질의 내용 요약</label>
+            <textarea id="modalSummary" class="form-control" rows="2" readonly style="background: #f8fafc; color: #475569; font-size: 12px;"></textarea>
+          </div>
+
+          <div class="modal-btns">
+            <button type="button" onclick="closeModal()" class="chip">취소</button>
+            <button type="submit" class="btn-send" style="padding: 10px 20px; font-size: 13.5px;">상담 예약 접수하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 연성대학교 컴퓨터소프트웨어과 캡스톤디자인 4조 · 공공기관 민원 안내 AI 챗봇 솔루션 (Vercel & Supabase Cloud 연동)</p>
+    </footer>
+
     <script>
-      const button = document.querySelector('#check');
-      const status = document.querySelector('#status');
-      const detail = document.querySelector('#detail');
-      const dot = document.querySelector('#dot');
-      button.addEventListener('click', async () => {
-        button.disabled = true;
-        status.textContent = '확인 중';
-        detail.textContent = '서버에서 Supabase 응답을 기다리고 있습니다.';
-        dot.className = 'dot';
+      // 탭 전환
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          const tabId = 'tab-' + btn.dataset.tab;
+          document.getElementById(tabId).classList.add('active');
+
+          if (btn.dataset.tab === 'counters') loadCounters();
+          if (btn.dataset.tab === 'stats') loadStats();
+        });
+      });
+
+      // 빠른 질문 칩
+      function askQuick(text) {
+        document.getElementById('userInput').value = text;
+        submitChat();
+      }
+
+      // 챗봇 대화 제출
+      const chatForm = document.getElementById('chatForm');
+      const chatBox = document.getElementById('chatBox');
+      const userInput = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitChat();
+      });
+
+      let currentSessionId = null;
+
+      async function submitChat() {
+        const query = userInput.value.trim();
+        if (!query) return;
+
+        appendMessage('user', query);
+        userInput.value = '';
+        sendBtn.disabled = true;
+
+        const loadingId = appendLoading();
+
         try {
-          const response = await fetch('/api/status', { cache: 'no-store' });
-          const result = await response.json();
-          if (!response.ok || !result.ok) throw new Error(result.message || '연결에 실패했습니다.');
-          status.textContent = '정상 연결';
-          detail.textContent = 'Vercel 서버가 Supabase Data API에서 정상 응답을 받았습니다.';
-          dot.className = 'dot good';
-        } catch (error) {
-          status.textContent = '연결 실패';
-          detail.textContent = error.message || '서버 응답을 확인하지 못했습니다.';
-          dot.className = 'dot bad';
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+          });
+          const data = await res.json();
+          removeLoading(loadingId);
+
+          if (!res.ok || !data.ok) {
+            appendMessage('bot', '죄송합니다. 서버 응답 처리 중 문제가 발생했습니다: ' + (data.message || '오류'));
+            return;
+          }
+
+          currentSessionId = data.sessionId;
+
+          if (data.isTransferred) {
+            // 저확신/복합 질의 이관 카드
+            const content = `
+              <div style="font-weight: 700; color: #be123c; margin-bottom: 6px;">⚠️ ${escapeHtml(data.title)}</div>
+              <div>${data.answer.replace(/\n/g, '<br/>')}</div>
+              <div class="transfer-card">
+                <h4>🚨 [오안내 방지] 전문 상담 이관 권장</h4>
+                <p>신뢰도 점수: <b style="color: #be123c;">${data.confidenceScore}% (기준치 미달)</b><br/>
+                추측성 오답을 방지하기 위해 행복구청 담당 공무원 상담으로 즉시 연결합니다.</p>
+                <button type="button" class="btn-transfer" onclick="openReserveModal('${escapeHtml(query)}')">👉 전문 담당자 상담 예약하기</button>
+              </div>
+            `;
+            appendMessage('bot', content, true);
+          } else {
+            // 정형 민원 완결 카드
+            const content = `
+              <div style="margin-bottom: 6px;">
+                <span class="confidence-badge conf-high">✓ 높은 신뢰도 ${data.confidenceScore}%</span>
+                <span style="font-size: 11.5px; color: #64748b; margin-left: 6px;">[${escapeHtml(data.category)}]</span>
+              </div>
+              <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">${escapeHtml(data.title)}</div>
+              <div style="margin-bottom: 10px;">${escapeHtml(data.answer)}</div>
+              ${data.requiredDocs ? `
+                <div class="ans-meta-card">
+                  <b>📌 구비 서류 체크리스트:</b>
+                  ${escapeHtml(data.requiredDocs)}
+                </div>
+              ` : ''}
+              ${data.fee ? `
+                <div class="ans-meta-card" style="margin-top: 6px; border-left-color: #0284c7;">
+                  <b>💰 수수료 및 발급 요건:</b>
+                  ${escapeHtml(data.fee)}
+                </div>
+              ` : ''}
+              <div style="font-size: 12px; color: #059669; font-weight: 600; margin-top: 10px;">
+                ✨ ${escapeHtml(data.suggestedAction)}
+              </div>
+            `;
+            appendMessage('bot', content, true);
+          }
+        } catch (err) {
+          removeLoading(loadingId);
+          appendMessage('bot', '서버 통신 실패: ' + err.message);
         } finally {
-          button.disabled = false;
+          sendBtn.disabled = false;
+        }
+      }
+
+      function appendMessage(role, text, isHtml = false) {
+        const div = document.createElement('div');
+        div.className = 'msg ' + role;
+        div.innerHTML = `
+          <div class="avatar">${role === 'bot' ? '🤖' : '👤'}</div>
+          <div class="bubble">${isHtml ? text : escapeHtml(text)}</div>
+        `;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function appendLoading() {
+        const id = 'loading-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'msg bot';
+        div.innerHTML = `
+          <div class="avatar">🤖</div>
+          <div class="bubble" style="color: #64748b;">행정지식베이스 검색 및 신뢰도 검증 중... ⏳</div>
+        `;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return id;
+      }
+
+      function removeLoading(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+      }
+
+      function escapeHtml(str) {
+        return (str || '').replace(/[&<>'"]/g, tag => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag));
+      }
+
+      // 상담 예약 모달
+      const reserveModal = document.getElementById('reserveModal');
+      const reserveForm = document.getElementById('reserveForm');
+
+      function openReserveModal(queryText) {
+        document.getElementById('modalSessionId').value = currentSessionId || '';
+        document.getElementById('modalSummary').value = queryText;
+        reserveModal.style.display = 'grid';
+      }
+
+      function closeModal() {
+        reserveModal.style.display = 'none';
+      }
+
+      reserveForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          sessionId: document.getElementById('modalSessionId').value,
+          citizenName: document.getElementById('modalName').value,
+          citizenTel: document.getElementById('modalTel').value,
+          consultType: document.getElementById('modalType').value,
+          deptCode: document.getElementById('modalDept').value,
+          summary: document.getElementById('modalSummary').value,
+        };
+
+        try {
+          const res = await fetch('/api/reserve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          closeModal();
+
+          if (data.ok) {
+            alert(`✅ 상담 예약 및 민원 접수가 완료되었습니다!\n\n접수번호: ${data.complaintNo}\n배정부서: ${data.deptName}\n상담방식: ${data.consultType}\n\n등록하신 연락처로 알림톡이 전송되었습니다.`);
+            appendMessage('bot', `
+              <div style="padding: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px;">
+                <b style="color: #065f46; font-size: 14px;">✅ 담당자 상담 예약 접수 완료</b><br/>
+                접수번호: <b>${data.complaintNo}</b><br/>
+                배정부서: ${escapeHtml(data.deptName)} (${escapeHtml(data.deptTel)})<br/>
+                신청하신 연락처(${escapeHtml(data.citizenTel)})로 접수증 알림톡이 발송되었습니다.
+              </div>
+            `, true);
+          } else {
+            alert('오류: ' + (data.message || '접수 실패'));
+          }
+        } catch (err) {
+          alert('통신 오류: ' + err.message);
         }
       });
+
+      // 창구 현황 로드
+      async function loadCounters() {
+        const container = document.getElementById('counterList');
+        const banner = document.getElementById('recommendedBanner');
+        container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); grid-column: 1/-1;">실시간 창구 현황 조회 중...</div>';
+
+        try {
+          const res = await fetch('/api/counters');
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.message);
+
+          if (data.recommended && data.recommended.length > 0) {
+            const best = data.recommended[0];
+            banner.innerHTML = `<span>💡 <b>실시간 추천</b>: 현재 <b>${escapeHtml(best.orgName)} ${escapeHtml(best.counterName)}</b>의 대기 인원이 <b>${best.waitingCount}명</b>으로 가장 원활합니다. (위치: ${escapeHtml(best.location)})</span>`;
+          }
+
+          container.innerHTML = data.counters.map(c => {
+            const statusClass = c.isCrowded ? 'crowded' : (c.waitingCount <= 3 ? 'free' : 'normal');
+            const pillClass = c.isCrowded ? 'pill-danger' : (c.waitingCount <= 3 ? 'pill-success' : 'pill-warn');
+            const statusText = c.isCrowded ? '혼잡 (대기 길음)' : (c.waitingCount <= 3 ? '원활' : '보통');
+
+            return `
+              <div class="counter-card ${statusClass}">
+                <div class="counter-dept">${escapeHtml(c.orgName)} · ${escapeHtml(c.deptName)}</div>
+                <div class="counter-name">${escapeHtml(c.counterName)}</div>
+                <div class="counter-num-box">
+                  <div>
+                    <div style="font-size: 11px; color: #64748b;">현재 호출 번호</div>
+                    <div class="num-val">${c.currentCallingNo}번</div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 11px; color: #64748b;">대기 인원</div>
+                    <div class="num-val" style="color: ${c.isCrowded ? '#dc2626' : '#2563eb'};">${c.waitingCount}명</div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                  <span class="wait-pill ${pillClass}">${statusText}</span>
+                  <span style="color: #64748b;">📍 ${escapeHtml(c.location)}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } catch (err) {
+          container.innerHTML = `<div style="padding: 20px; color: #dc2626; grid-column: 1/-1;">창구 정보를 불러오지 못했습니다: ${err.message}</div>`;
+        }
+      }
+
+      // 민원 처리 상태 조회
+      function quickLookup(no) {
+        document.getElementById('lookupInput').value = no;
+        lookupComplaint();
+      }
+
+      async function lookupComplaint() {
+        const no = document.getElementById('lookupInput').value.trim();
+        const resBox = document.getElementById('lookupResult');
+        if (!no) {
+          alert('접수번호를 입력해 주세요.');
+          return;
+        }
+
+        resBox.style.display = 'block';
+        resBox.innerHTML = '<div style="text-align: center; color: #64748b;">민원 처리 대장을 조회하는 중입니다...</div>';
+
+        try {
+          const res = await fetch(`/api/lookup?no=${encodeURIComponent(no)}`);
+          const data = await res.json();
+          if (!data.ok) {
+            resBox.innerHTML = `<div style="color: #dc2626; font-size: 13.5px; text-align: center;">${data.message || '조회 내역이 없습니다.'}</div>`;
+            return;
+          }
+
+          const c = data.complaint;
+          resBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
+              <div>
+                <span style="font-size: 12px; color: #64748b;">접수번호</span>
+                <div style="font-size: 17px; font-weight: 800; color: #1e3a8a;">${escapeHtml(c.complaintNo)}</div>
+              </div>
+              <span class="wait-pill pill-warn" style="font-size: 13px; padding: 5px 12px;">진행 상태: ${escapeHtml(c.processStatus)}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; margin-bottom: 14px;">
+              <div>담당 공무원: <b>${escapeHtml(c.officerName)}</b></div>
+              <div>법정 처리 기한: <b>${escapeHtml(c.dueDate)}</b></div>
+            </div>
+            <div style="background: white; border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-size: 13px;">
+              <b style="color: #0f172a; display: block; margin-bottom: 4px;">조사 및 처리 안내</b>
+              ${escapeHtml(c.result)}
+            </div>
+          `;
+        } catch (err) {
+          resBox.innerHTML = `<div style="color: #dc2626; font-size: 13.5px;">조회 오류: ${err.message}</div>`;
+        }
+      }
+
+      // 통계 대시보드 로드
+      async function loadStats() {
+        try {
+          const res = await fetch('/api/stats');
+          const data = await res.json();
+          if (!data.ok) return;
+
+          document.getElementById('statTotal').textContent = data.summary.totalInquiries + '건';
+          document.getElementById('statResolved').textContent = data.summary.selfResolved + '건';
+          document.getElementById('statTransferred').textContent = data.summary.transferred + '건';
+          document.getElementById('statRate').textContent = data.summary.resolveRate;
+          document.getElementById('bannerRate').textContent = data.summary.resolveRate;
+
+          const tbody = document.getElementById('sessionLogs');
+          tbody.innerHTML = (data.recentSessions || []).map(s => `
+            <tr>
+              <td>${new Date(s.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</td>
+              <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(s.query)}</td>
+              <td><b>${s.confidence_score}%</b></td>
+              <td>
+                <span class="wait-pill ${s.status === '자체완결' ? 'pill-success' : 'pill-danger'}">
+                  ${escapeHtml(s.status)}
+                </span>
+              </td>
+              <td>${escapeHtml(s.channel)}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="5" style="text-align: center;">기록이 없습니다.</td></tr>';
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      // 초기 통계 및 창구 로드
+      loadStats();
     </script>
   </body>
 </html>
