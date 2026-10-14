@@ -3,566 +3,170 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1e40af" />
+    <meta name="theme-color" content="#ffffff" />
     <title>행복구청 24시 스마트 민원 안내 AI (행복톡톡)</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
     <style>
-      :root {
-        --primary: #1d4ed8;
-        --primary-light: #eff6ff;
-        --primary-dark: #1e3a8a;
-        --accent: #0284c7;
-        --success: #059669;
-        --warning: #d97706;
-        --danger: #dc2626;
-        --bg: #f8fafc;
-        --card-bg: #ffffff;
-        --text: #0f172a;
-        --text-muted: #64748b;
-        --border: #e2e8f0;
-        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        --radius: 14px;
-      }
-
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body {
-        font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        background-color: var(--bg);
-        color: var(--text);
-        line-height: 1.6;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* 헤더 */
-      header {
-        background: white;
-        border-bottom: 1px solid var(--border);
-        position: sticky;
-        top: 0;
-        z-index: 50;
-      }
-      .nav-container {
-        max-width: 1140px;
-        margin: 0 auto;
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .logo-area {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        color: inherit;
-      }
-      .logo-badge {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        border-radius: 10px;
-        display: grid;
-        place-items: center;
-        color: white;
-        font-size: 20px;
-        font-weight: 800;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-      }
-      .brand-title {
-        font-size: 17px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: #0f172a;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .brand-sub {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 500;
-      }
-      .system-status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 6px 12px;
-        background: #ecfdf5;
-        border: 1px solid #a7f3d0;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #047857;
-      }
-      .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background: #10b981;
-        border-radius: 50%;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
-        animation: pulse 2s infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.2); opacity: 0.8; }
-      }
-
-      /* 메인 컨테이너 */
-      main {
-        max-width: 1140px;
-        margin: 24px auto;
-        padding: 0 20px;
-        flex: 1;
-        width: 100%;
-      }
-
-      /* 탭 네비게이션 */
-      .tabs {
-        display: flex;
-        gap: 8px;
-        border-bottom: 2px solid var(--border);
-        margin-bottom: 24px;
-        overflow-x: auto;
-      }
-      .tab-btn {
-        padding: 12px 18px;
-        border: none;
-        background: none;
-        font-size: 14.5px;
-        font-weight: 600;
-        color: var(--text-muted);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        position: relative;
-        white-space: nowrap;
-        transition: color 0.15s;
-      }
-      .tab-btn:hover { color: var(--primary); }
-      .tab-btn.active {
-        color: var(--primary);
-        font-weight: 700;
-      }
-      .tab-btn.active::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2.5px;
-        background: var(--primary);
-        border-radius: 2px;
-      }
-
-      /* 섹션 공통 */
-      .tab-content { display: none; }
-      .tab-content.active { display: block; animation: fadeIn 0.25s ease-out; }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(4px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* 슬로건 배너 */
-      .banner {
-        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-        border-radius: var(--radius);
-        padding: 22px 28px;
-        color: white;
-        margin-bottom: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
-        box-shadow: 0 10px 25px -5px rgba(29, 78, 216, 0.25);
-      }
-      .banner-tag {
-        display: inline-block;
-        padding: 3px 9px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        margin-bottom: 6px;
-      }
-      .banner-h { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
-      .banner-p { font-size: 13.5px; opacity: 0.9; margin-top: 4px; }
-      .banner-stats {
-        display: flex;
-        gap: 20px;
-        background: rgba(255, 255, 255, 0.12);
-        padding: 10px 18px;
-        border-radius: 10px;
-        backdrop-filter: blur(8px);
-      }
-      .stat-item { text-align: center; }
-      .stat-val { font-size: 18px; font-weight: 800; }
-      .stat-lbl { font-size: 11px; opacity: 0.8; }
-
-      /* 챗봇 화면 레이아웃 */
-      .chat-wrapper {
-        display: grid;
-        grid-template-columns: 1fr 340px;
-        gap: 20px;
-        align-items: start;
-      }
-      @media (max-width: 900px) {
-        .chat-wrapper { grid-template-columns: 1fr; }
-      }
-
-      .chat-card {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: var(--shadow-sm);
-        display: flex;
-        flex-direction: column;
-        height: 640px;
-      }
-      .chat-header {
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--border);
-        background: #fafafa;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .chat-header h3 { font-size: 14.5px; font-weight: 700; color: #1e293b; }
-      .chat-mode-pill {
-        font-size: 11.5px;
-        font-weight: 600;
-        color: #1d4ed8;
-        background: #dbeafe;
-        padding: 3px 8px;
-        border-radius: 6px;
-      }
-
-      /* 챗봇 메시지 영역 */
-      .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        background: #f8fafc;
-      }
-      .msg {
-        display: flex;
-        gap: 10px;
-        max-width: 82%;
-      }
-      .msg.bot { align-self: flex-start; }
-      .msg.user { align-self: flex-end; flex-direction: row-reverse; }
-      .avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        font-size: 16px;
-        flex-shrink: 0;
-      }
-      .msg.bot .avatar { background: #2563eb; color: white; }
-      .msg.user .avatar { background: #64748b; color: white; }
-      .bubble {
-        padding: 12px 16px;
-        border-radius: 14px;
-        font-size: 14px;
-        line-height: 1.55;
-      }
-      .msg.bot .bubble {
-        background: white;
-        border: 1px solid var(--border);
-        color: #1e293b;
-        box-shadow: var(--shadow-sm);
-        border-top-left-radius: 4px;
-      }
-      .msg.user .bubble {
-        background: #2563eb;
-        color: white;
-        border-top-right-radius: 4px;
-      }
-
-      /* 답변 부가 카드 */
-      .ans-meta-card {
-        margin-top: 10px;
-        padding: 12px;
-        background: #f1f5f9;
-        border-radius: 8px;
-        font-size: 12.5px;
-        border-left: 3px solid var(--primary);
-      }
-      .ans-meta-card b { color: #0f172a; display: block; margin-bottom: 3px; }
-      .confidence-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 7px;
-        border-radius: 4px;
-        font-size: 11.5px;
-        font-weight: 700;
-        margin-bottom: 6px;
-      }
-      .conf-high { background: #dcfce7; color: #15803d; }
-      .conf-low { background: #fee2e2; color: #b91c1c; }
-
-      /* 저확신 이관 안내 카드 */
-      .transfer-card {
-        margin-top: 12px;
-        padding: 14px;
-        background: #fff1f2;
-        border: 1px solid #fecdd3;
-        border-radius: 10px;
-      }
-      .transfer-card h4 {
-        color: #be123c;
-        font-size: 13.5px;
-        font-weight: 700;
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .transfer-card p { font-size: 12.5px; color: #4c0519; margin-bottom: 10px; }
-      .btn-transfer {
-        width: 100%;
-        padding: 9px;
-        background: #e11d48;
-        color: white;
-        border: none;
-        border-radius: 7px;
-        font-weight: 700;
-        font-size: 13px;
-        cursor: pointer;
-        transition: background 0.15s;
-      }
-      .btn-transfer:hover { background: #be123c; }
-
-      /* 챗봇 입력창 */
-      .chat-input-area {
-        padding: 14px 18px;
-        background: white;
-        border-top: 1px solid var(--border);
-      }
-      .quick-chips {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        scrollbar-width: none;
-      }
-      .quick-chips::-webkit-scrollbar { display: none; }
-      .chip {
-        padding: 6px 11px;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        font-size: 12px;
-        color: #334155;
-        white-space: nowrap;
-        cursor: pointer;
-        transition: all 0.15s;
-      }
-      .chip:hover {
-        background: var(--primary-light);
-        border-color: #bfdbfe;
-        color: var(--primary);
-      }
-      .chip.warn {
-        background: #fff1f2;
-        border-color: #fecdd3;
-        color: #be123c;
-      }
-      .input-box {
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-      }
-      .input-box input {
-        flex: 1;
-        padding: 11px 15px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        font-size: 14px;
-        outline: none;
-        font-family: inherit;
-        transition: border 0.15s;
-      }
-      .input-box input:focus { border-color: var(--primary); }
-      .btn-send {
-        padding: 0 18px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-weight: 700;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      .btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
-
-      /* 우측 가이드 사이드바 */
-      .guide-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-      .side-card {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 18px;
-        box-shadow: var(--shadow-sm);
-      }
-      .side-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #0f172a; }
-      .principle-list { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: #475569; }
-      .principle-list li { display: flex; gap: 8px; align-items: flex-start; }
-      .check-icon { color: #16a34a; font-weight: 700; }
-
-      /* 창구 대기 현황 탭 스타일 */
-      .counter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 18px;
-        margin-top: 16px;
-      }
-      .counter-card {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 20px;
-        box-shadow: var(--shadow-sm);
-        position: relative;
-        overflow: hidden;
-      }
-      .counter-card.crowded { border-top: 4px solid var(--danger); }
-      .counter-card.normal { border-top: 4px solid var(--warning); }
-      .counter-card.free { border-top: 4px solid var(--success); }
-      .counter-dept { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-      .counter-name { font-size: 16px; font-weight: 800; margin: 4px 0 14px; }
-      .counter-num-box {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8fafc;
-        padding: 12px 14px;
-        border-radius: 10px;
-        margin-bottom: 12px;
-      }
-      .num-val { font-size: 26px; font-weight: 900; color: #1e293b; }
-      .wait-pill {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-      }
-      .pill-danger { background: #fee2e2; color: #b91c1c; }
-      .pill-success { background: #dcfce7; color: #15803d; }
-      .pill-warn { background: #fef3c7; color: #b45309; }
-
-      /* 조회 탭 스타일 */
-      .lookup-container {
-        max-width: 680px;
-        margin: 30px auto;
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 32px;
-        box-shadow: var(--shadow-sm);
-      }
-      .lookup-result-card {
-        margin-top: 24px;
-        padding: 20px;
-        background: #f8fafc;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        display: none;
-      }
-
-      /* 관리자 대시보드 탭 */
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-      .metric-card {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 20px;
-        box-shadow: var(--shadow-sm);
-      }
-      .metric-lbl { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
-      .metric-num { font-size: 28px; font-weight: 900; color: #0f172a; margin-top: 6px; }
-
-      .table-box {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: hidden;
-        margin-top: 20px;
-      }
-      .table-header-box { padding: 14px 18px; border-bottom: 1px solid var(--border); background: #fafafa; font-weight: 700; }
+      :root { --primary:#3182f6; --primary-dark:#1b64da; --primary-light:#edf4ff; --text:#191f28; --text-muted:#6b7684; --border:#e5e8eb; --bg:#fff; --success:#138657; --warning:#a46515; --danger:#d14343; }
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { min-height:100vh; display:flex; flex-direction:column; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif; letter-spacing:-.025em; line-height:1.6; }
+      button,input,select,textarea { font:inherit; }
+      button { cursor:pointer; transition:background .16s,border-color .16s,color .16s; }
+      button:disabled { cursor:wait; opacity:.45; }
+      button,a,input,select,textarea { -webkit-tap-highlight-color:transparent; }
+      button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:3px solid #8dbaff; outline-offset:4px; }
+      [hidden] { display:none!important; }
+      header { background:white; border-bottom:1px solid #f0f2f5; }
+      .nav-container { max-width:1200px; margin:auto; min-height:80px; padding:0 28px; display:flex; align-items:center; gap:54px; }
+      .logo-area { display:flex; gap:10px; align-items:center; color:inherit; text-decoration:none; flex-shrink:0; }
+      .logo-badge { position:relative; width:31px; height:29px; background:#3182f6; border-radius:11px 11px 11px 3px; display:flex; align-items:center; justify-content:center; gap:4px; transform:rotate(-7deg); }
+      .logo-badge span,.logo-badge i { width:4px; height:4px; border-radius:50%; background:white; }
+      .brand-title { font-size:21px; letter-spacing:-.8px; font-weight:750; }
+      .tabs { display:flex; align-items:center; gap:30px; flex:1; }
+      .tab-btn { padding:27px 0; background:none; border:0; color:#6b7684; white-space:nowrap; font-size:14px; font-weight:500; }
+      .tab-btn:hover { color:#333d4b; }
+      .tab-btn.active { color:#191f28; font-weight:700; }
+      .tab-btn:last-child { margin-left:auto; font-size:13px; color:#8b95a1; }
+      .header-tools { display:flex; align-items:center; gap:14px; }
+      .prototype-label { display:none; }
+      .system-status-pill { display:flex; align-items:center; gap:6px; font-size:11px; color:#8b95a1; white-space:nowrap; }
+      .pulse-dot { width:5px; height:5px; background:#b0b8c1; border-radius:50%; }
+      .system-status-pill.online { color:#138657; }.online .pulse-dot { background:#20aa76; }
+      main { max-width:1000px; width:100%; padding:0 28px; margin:0 auto; flex:1; }
+      .tab-content { display:none; padding:54px 0 65px; scroll-margin-top:25px; }
+      .tab-content.active { display:block; }.tab-content:focus { outline:none; }
+      #tab-chat { padding-top:0; }
+      .chat-wrapper { width:100%; }
+      .chat-card { max-width:820px; margin:auto; }
+      .chat-header { display:none; }
+      .chat-messages { display:flex; flex-direction:column; }
+      .welcome-screen { text-align:center; padding:64px 0 36px; }
+      .welcome-label { display:inline-block; color:#3182f6; background:#edf4ff; padding:5px 11px; font-size:12px; font-weight:600; border-radius:7px; margin-bottom:19px; }
+      .welcome-screen h1 { font-size:42px; font-weight:750; letter-spacing:-1.7px; line-height:1.35; }
+      .welcome-screen p { font-size:16px; color:#8b95a1; margin-top:17px; }
+      .chat-input-area { display:flex; flex-direction:column; }
+      .quick-label { font-size:12px; font-weight:500; color:#8b95a1; margin:23px 0 12px; order:3; }
+      .quick-chips { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; order:4; }
+      .chip { border:0; border-radius:14px; padding:19px 18px 18px; background:#f7f8fa; text-align:left; position:relative; color:#333d4b; }
+      .chip:hover { background:#f0f3f7; }
+      .topic-icon { display:grid; place-items:center; width:36px; height:36px; margin-bottom:13px; border-radius:11px; background:#e8f1ff; color:#3182f6; }
+      .topic-icon svg { width:24px; height:24px; }
+      .topic-passport .topic-icon { background:#e4f6ef; color:#259b73; }
+      .topic-waste .topic-icon { background:#fff0db; color:#d79130; }
+      .topic-sign .topic-icon { background:#ececfc; color:#7776cd; }
+      .chip b { display:block; font-weight:600; font-size:14px; }
+      .chip small { display:block; font-size:12px; color:#8b95a1; margin-top:4px; white-space:nowrap; }
+      .topic-arrow { position:absolute; right:16px; top:23px; font-size:17px; color:#c0c6ce; }
+      .input-box { display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid #d1d6db; border-radius:18px; padding:11px 12px 11px 19px; box-shadow:0 5px 20px #1b3d7006; order:1; transition:border-color .15s,box-shadow .15s; }
+      .input-box:focus-within { border-color:#3182f6; box-shadow:0 0 0 3px #3182f610; }
+      .input-box input { min-width:0; flex:1; border:0; outline:0; background:transparent; font-size:16px; padding:8px 0; color:#191f28; }
+      .input-box input:focus-visible { outline:none; }
+      input::placeholder { color:#b0b8c1; }
+      .btn-send { background:#3182f6; color:white; border:0; border-radius:11px; padding:10px 18px; font-size:14px; font-weight:600; white-space:nowrap; min-height:44px; }
+      .btn-send:hover { background:#1b64da; }
+      #sendBtn { width:42px; height:42px; min-height:42px; padding:0; border-radius:12px; font-size:25px; line-height:1; flex-shrink:0; }
+      .input-note { order:2; text-align:center; color:#a4adb8; font-size:11px; margin-top:11px; }
+      .next-services { max-width:820px; margin:40px auto 0; padding-top:24px; border-top:1px solid #f0f2f5; display:grid; grid-template-columns:1fr 1fr; gap:36px; }
+      .next-service { display:flex; align-items:center; gap:14px; border:0; padding:7px 0; background:transparent; text-align:left; border-radius:8px; }
+      .next-service:hover b { color:#3182f6; }
+      .next-icon { display:grid; place-items:center; width:42px; height:42px; flex-shrink:0; background:#f2f4f6; border-radius:13px; color:#6b7684; }
+      .next-icon svg { width:24px; height:24px; }
+      .next-service b { display:block; font-size:14px; font-weight:600; color:#4e5968; }
+      .next-service small { display:block; font-size:12px; color:#8b95a1; margin-top:3px; }
+      .next-arrow { color:#b0b8c1; font-size:18px; margin-left:auto; padding-right:6px; }
+      .service-notice { max-width:820px; margin:31px auto 0; display:flex; gap:12px; font-size:11px; color:#a4adb8; }
+      .service-notice b { white-space:nowrap; font-weight:500; color:#8b95a1; }
+      .has-conversation .chat-card { padding-top:28px; }
+      .has-conversation .chat-header { display:flex; align-items:center; justify-content:space-between; padding:0 0 17px; border-bottom:1px solid #f0f2f5; }
+      .chat-title { display:flex; align-items:center; gap:9px; }.chat-title h3 { font-size:15px; font-weight:650; }
+      .mini-logo { display:grid; place-items:center; width:28px; height:28px; font-size:15px; font-weight:650; border-radius:9px; color:#3182f6; background:#edf4ff; }
+      .reset-chat { border:0; background:#f2f4f6; color:#6b7684; border-radius:7px; padding:7px 11px; font-size:12px; }
+      .has-conversation .chat-messages { height:380px; overflow-y:auto; gap:22px; padding:25px 0; }
+      .msg { display:flex; gap:10px; max-width:90%; }
+      .msg.bot { align-self:flex-start; }.msg.user { align-self:flex-end; flex-direction:row-reverse; }
+      .avatar { width:29px; height:29px; display:grid; place-items:center; font-size:13px; font-weight:600; border-radius:10px; flex-shrink:0; }
+      .msg.bot .avatar { background:#edf4ff; color:#3182f6; }.msg.user .avatar { display:none; }
+      .bubble { font-size:15px; line-height:1.8; overflow-wrap:anywhere; padding:0 4px; }
+      .msg.user .bubble { background:#f2f4f6; padding:12px 17px; border-radius:16px 4px 16px 16px; }
+      .has-conversation .quick-label { display:none; }
+      .has-conversation .quick-chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:17px; }
+      .has-conversation .chip { padding:7px 11px; border-radius:7px; background:#f2f4f6; }
+      .has-conversation .chip b { font-size:12px; font-weight:500; }
+      .has-conversation .topic-icon,.has-conversation .chip small,.has-conversation .topic-arrow { display:none; }
+      .ans-meta-card { margin-top: 10px; padding: 12px; background: #f7f8fa; border-left: 2px solid var(--primary); font-size: 13px; }
+      .ans-meta-card b { display: block; margin-bottom: 4px; }
+      .confidence-badge, .wait-pill { display: inline-block; padding: 3px 7px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+      .conf-high, .pill-success { background: #e6f0e2; color: #3c7033; }
+      .conf-low, .pill-danger { background: #f8e9e6; color: #9e4434; }
+      .pill-warn { background: #f6efde; color: #8e6a25; }
+      .transfer-card { margin-top: 15px; padding: 15px; border: 1px solid #ddccaf; background: #faf5e9; border-radius: 6px; }
+      .transfer-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #8d642b; }
+      .transfer-card p { font-size: 13px; color: #6d6558; margin-bottom: 12px; }
+      .btn-transfer { border: 0; padding: 10px 14px; border-radius: 4px; background: #77603b; color: white; width: 100%; font-size: 13px; }
+      .counter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px,100%),1fr)); gap: 18px; margin-top: 20px; }
+      .counter-card { border: 1px solid var(--border); background: white; border-radius: 8px; padding: 22px; }
+      .counter-card.crowded { border-top: 3px solid var(--danger); }
+      .counter-card.normal { border-top: 3px solid var(--warning); }
+      .counter-card.free { border-top: 3px solid var(--success); }
+      .counter-dept { font-size: 12px; color: var(--text-muted); }
+      .counter-name { font-size: 17px; font-weight: 650; margin: 5px 0 16px; }
+      .counter-num-box { display: flex; justify-content: space-between; align-items: center; background: #f7f8fa; padding: 12px 14px; border-radius: 5px; margin-bottom: 14px; }
+      .num-val { font-size: 27px; font-weight: 700; }
+      .state-card { grid-column: 1/-1; border: 1px solid var(--border); background: white; border-radius: 8px; text-align: center; padding: 50px 24px; }
+      .state-card b { display: block; font-size: 17px; font-weight: 650; margin-bottom: 8px; }
+      .state-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+      .state-card button { background: white; border: 1px solid #d1d6db; padding: 9px 16px; border-radius: 4px; color: var(--primary); }
+      .lookup-container { max-width: 690px; margin: 36px auto; padding: 34px; border: 1px solid var(--border); background: white; border-radius: 8px; }
+      .form-control { width: 100%; min-width: 0; border: 1px solid #d1d6db; border-radius: 5px; padding: 10px 12px; font-size: 14px; background: white; color: var(--text); }
+      .lookup-result-card { display: none; margin-top: 24px; padding: 22px; border: 1px solid var(--border); background: #f7f8fa; border-radius: 6px; }
+      .stats-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin: 24px 0; }
+      .metric-card { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
+      .metric-lbl { font-size: 12px; color: var(--text-muted); }
+      .metric-num { font-size: 29px; font-weight: 700; margin-top: 7px; font-variant-numeric: tabular-nums; }
+      .table-box { overflow: auto; background: white; border: 1px solid var(--border); border-radius: 6px; }
+      .table-header-box { padding: 15px 18px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; }
       table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-      th { background: #f8fafc; color: #475569; font-weight: 600; }
-
-      /* 모달 */
-      .modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        display: none;
-        place-items: center;
-        z-index: 100;
-        padding: 20px;
-        backdrop-filter: blur(4px);
-      }
-      .modal-box {
-        background: white;
-        border-radius: 18px;
-        width: min(520px, 100%);
-        padding: 26px;
-        box-shadow: var(--shadow-lg);
-        animation: scaleUp 0.2s ease-out;
-      }
-      @keyframes scaleUp {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-      }
+      th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #f0f2f5; }
+      th { background: #f7f8fa; color: #6b7684; font-weight: 550; }
+      .modal-backdrop { display: none; position: fixed; inset: 0; background: #191f2890; place-items: center; z-index: 100; padding: 20px; overflow-y: auto; }
+      .modal-box { width: min(520px,100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: white; border-radius: 10px; padding: 28px; }
       .form-group { margin-bottom: 14px; }
-      .form-group label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 5px; color: #334155; }
-      .form-control {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: inherit;
-        font-size: 13.5px;
-      }
-      .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+      .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+      .modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+      .modal-btns .chip { padding: 10px 16px; font-size: 13px; }
 
-      /* 푸터 */
-      footer {
-        background: white;
-        border-top: 1px solid var(--border);
-        padding: 20px;
-        text-align: center;
-        font-size: 12.5px;
-        color: var(--text-muted);
-        margin-top: auto;
+      footer { border-top:1px solid #f2f4f6; padding:24px 28px; background:#fafbfc; }
+      .footer-inner { max-width:1144px; margin:auto; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+      .footer-inner b { font-size:14px; color:#8b95a1; font-weight:600; }
+      .footer-inner span { color:#b0b8c1; font-size:11px; margin-left:12px; }
+      .footer-inner p { font-size:10px; color:#b0b8c1; text-align:right; line-height:1.8; }
+      .lookup-container { margin:12px auto 35px; border:0; padding:30px 0; }
+      .lookup-container h2 { font-size:27px!important; letter-spacing:-1px; }
+      .lookup-container>p { font-size:14px!important; margin-top:12px; }
+      .lookup-container .form-control { border-radius:11px; padding:15px; }
+      .lookup-container .btn-send { border-radius:11px; }
+      .state-card { border:0; background:#f9fafb; border-radius:18px; padding:70px 24px; }
+      .state-card b { font-size:20px; letter-spacing:-.6px; }
+      .state-card button { border:0; border-radius:9px; background:#edf4ff; color:#3182f6; font-size:14px; }
+      .counter-card,.metric-card { border-color:#f0f2f5; border-radius:14px; }
+      .metric-num { font-size:32px; }
+      .table-box { border-color:#f0f2f5; border-radius:12px; }
+      @media(min-width:1500px) { .welcome-screen { padding-top:78px; }.next-services { margin-top:45px; } }
+      @media(max-width:1000px) { .nav-container { gap:32px; }.tabs { gap:22px; }.header-tools { display:none; }main { max-width:900px; }.welcome-screen h1 { font-size:39px; } }
+      @media(max-width:760px) {
+        .nav-container { min-height:72px; gap:28px; padding:0 22px; }.tabs { gap:22px; }.tab-btn { font-size:13px; padding:24px 0; }.tab-btn:last-child { font-size:11px; }.brand-title { font-size:20px; }.logo-badge { width:28px; height:27px; }
+        main { padding:0 24px; }.welcome-screen { padding-top:55px; }.welcome-screen h1 { font-size:37px; }.welcome-screen p { font-size:15px; }.quick-chips { gap:9px; }.chip { padding:16px 13px; }.chip b { font-size:13px; }.chip small { font-size:10px; }.topic-arrow { right:12px; }.next-services { gap:24px; }.next-service b { font-size:13px; }.next-service small { font-size:11px; }.next-icon { width:36px; height:36px; }.service-notice { font-size:10px; }
+        .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       }
+      @media(max-width:580px) {
+        .nav-container { display:flex; flex-wrap:wrap; gap:0; padding:18px 22px 0; }.logo-area { width:100%; }.logo-badge { width:29px; height:28px; }.brand-title { font-size:21px; }.tabs { width:100%; flex:auto; justify-content:space-between; gap:12px; margin-top:14px; }.tab-btn { padding:11px 0 14px; font-size:13px; }.tab-btn:last-child { margin-left:0; font-size:12px; }
+        main { padding:0 22px; }.welcome-screen { padding:39px 0 27px; text-align:left; }.welcome-label { font-size:11px; margin-bottom:16px; padding:4px 8px; }.welcome-screen h1 { font-size:34px; line-height:1.35; letter-spacing:-1.2px; }.welcome-screen p { font-size:14px; margin-top:13px; }.chat-card { max-width:none; }
+        .input-box { padding:9px 9px 9px 14px; border-radius:14px; gap:7px; }.input-box input { font-size:13px; padding:9px 0; }#sendBtn { width:36px; height:36px; min-height:36px; font-size:22px; border-radius:10px; }.input-note { font-size:9px; text-align:left; margin-top:10px; line-height:1.7; }.quick-label { margin-top:26px; margin-bottom:11px; font-size:11px; }
+        .quick-chips { grid-template-columns:1fr 1fr; gap:10px; }.chip { padding:17px; border-radius:13px; }.chip b { font-size:14px; }.chip small { font-size:11px; }.topic-icon { margin-bottom:10px; width:33px; height:33px; border-radius:10px; }.topic-icon svg { width:23px; height:23px; }.topic-arrow { right:16px; top:20px; }
+        .next-services { margin-top:29px; padding-top:16px; grid-template-columns:1fr; gap:14px; }.next-service { gap:13px; padding:6px 0; }.next-service b { font-size:14px; }.next-service small { font-size:12px; }.next-icon { width:39px; height:39px; }.service-notice { margin-top:25px; font-size:10px; line-height:1.8; }.tab-content { padding:32px 0 40px; }.has-conversation .chat-card { padding-top:22px; }.has-conversation .chat-messages { height:360px; padding:23px 0; }.msg { max-width:100%; gap:8px; }.bubble { font-size:14px; }.avatar { width:25px; height:25px; font-size:12px; border-radius:8px; }.has-conversation .chip { padding:7px 10px; }.has-conversation .next-services { margin-top:27px; }
+        .lookup-container { padding:15px 0; margin:5px auto 20px; }.lookup-container h2 { font-size:23px!important; }.lookup-container>p { font-size:13px!important; }.lookup-container .form-control { padding:12px; font-size:13px; }.lookup-container .btn-send { padding:10px 13px!important; font-size:13px!important; }.lookup-result-card { padding:16px; }.metric-card { padding:16px; }.metric-num { font-size:27px; }.metric-lbl { font-size:11px; }.modal-backdrop { padding:12px; }.modal-box { padding:23px 18px; max-height:calc(100dvh - 24px); }
+        footer { padding:22px; }.footer-inner { flex-direction:column; align-items:flex-start; gap:12px; }.footer-inner p { text-align:left; font-size:9px; }.footer-inner span { font-size:10px; }
+      }
+      @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; animation:none!important; scroll-behavior:auto!important; } }
     </style>
   </head>
   <body>
@@ -570,122 +174,63 @@
     <header>
       <div class="nav-container">
         <a href="#" class="logo-area">
-          <div class="logo-badge">🏛️</div>
+          <div class="logo-badge" aria-hidden="true"><span></span><i></i><i></i></div>
           <div>
-            <div class="brand-title">행복구청 24시 스마트 민원 안내 AI <span style="font-size: 12px; color: #2563eb; background:#eff6ff; padding: 2px 6px; border-radius: 4px;">행복톡톡</span></div>
-            <div class="brand-sub">연성대학교 컴퓨터소프트웨어과 · 클라우드 캡스톤디자인 4조</div>
+            <div class="brand-title">행복톡톡</div>
+
           </div>
         </a>
-        <div class="system-status-pill">
-          <span class="pulse-dot"></span>
-          <span>Supabase 클라우드 실시간 연동</span>
-        </div>
+      <nav class="tabs" aria-label="민원 서비스">
+        <button class="tab-btn active" data-tab="chat">민원 상담</button>
+        <button class="tab-btn" data-tab="counters">창구 대기 현황</button>
+        <button class="tab-btn" data-tab="lookup">내 민원 조회</button>
+        <button class="tab-btn" data-tab="stats">운영 현황</button>
+      </nav>
+        <div class="header-tools"><span class="prototype-label">행복구청 · 시범 서비스</span><div class="system-status-pill" id="serviceStatus" role="status"><span class="pulse-dot"></span><span>연결 확인 중</span></div></div>
       </div>
     </header>
 
     <main>
-      <!-- 슬로건 배너 -->
-      <div class="banner">
-        <div>
-          <span class="banner-tag">PROJECT MISSION</span>
-          <div class="banner-h">"확신 없으면 사람에게, 확실하면 24시간 챗봇이"</div>
-          <p class="banner-p">정형 민원은 24시간 즉시 안내하고, 판단이 어려운 복합 민원은 환각 없이 전문 담당자에게 정확히 이관합니다.</p>
-        </div>
-        <div class="banner-stats">
-          <div class="stat-item">
-            <div class="stat-val" id="bannerRate">84.2%</div>
-            <div class="stat-lbl">자체 완결률</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-val">24시</div>
-            <div class="stat-lbl">무중단 응대</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-val">0건</div>
-            <div class="stat-lbl">오안내(환각) 방지</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 탭 메뉴 -->
-      <nav class="tabs">
-        <button class="tab-btn active" data-tab="chat">💬 24시 AI 민원 챗봇</button>
-        <button class="tab-btn" data-tab="counters">🏢 창구 실시간 대기 현황</button>
-        <button class="tab-btn" data-tab="lookup">🔍 민원 접수·처리 조회</button>
-        <button class="tab-btn" data-tab="stats">📊 관리자 모니터링</button>
-      </nav>
-
       <!-- 1. AI 챗봇 탭 -->
       <section id="tab-chat" class="tab-content active">
         <div class="chat-wrapper">
           <div class="chat-card">
-            <div class="chat-header">
-              <h3>행복구청 실시간 민원 안내 상담실</h3>
-              <span class="chat-mode-pill">RAG 지식베이스 가동중</span>
-            </div>
-
-            <div class="chat-messages" id="chatBox">
-              <div class="msg bot">
-                <div class="avatar">🤖</div>
-                <div class="bubble">
-                  안녕하세요! 행복구청 24시간 스마트 민원 챗봇 <b>행복톡톡</b>입니다. 😊<br/><br/>
-                  주민등록 등·초본, 인감증명서, 여권 발급, 대형폐기물 스티커 배출 등 궁금한 행정 민원을 자유롭게 질문해 주세요.<br/>
-                  신뢰할 수 없는 모호한 질문은 추측하지 않고 전문 담당자에게 안전하게 연결해 드립니다.
-                </div>
-              </div>
+            <div class="chat-header"><div class="chat-title"><span class="mini-logo" aria-hidden="true">톡</span><h3>민원 상담</h3></div><button type="button" class="reset-chat" onclick="resetChat()" aria-label="대화 내용 지우고 새 상담 시작">새 상담 시작</button></div>
+            <div class="chat-messages" id="chatBox" role="log" aria-live="polite" aria-label="민원 상담 대화">
+              <div class="welcome-screen"><span class="welcome-label">행복구청 민원 도우미</span><h1>궁금한 민원,<br/>여기서 물어보세요</h1><p>필요한 서류부터 신청 방법까지 한 번에.</p></div>
             </div>
 
             <div class="chat-input-area">
-              <div class="quick-chips">
-                <button class="chip" onclick="askQuick('주민등록등본 발급 서류랑 수수료 알려줘')">📄 주민등록등본 발급</button>
-                <button class="chip" onclick="askQuick('인감증명서 대리인 발급 구비서류')">📑 인감증명서 대리 발급</button>
-                <button class="chip" onclick="askQuick('여권 야간 발급 가능한가요?')">✈️ 여권 야간 창구 운영</button>
-                <button class="chip" onclick="askQuick('대형폐기물 스티커 구매 방법')">🛋️ 대형폐기물 스티커</button>
-                <button class="chip warn" onclick="askQuick('이웃집 불법 건축물 때문에 일조권 침해가 심한데 강제 철거 가능한가요?')">⚠️ [테스트] 저확신·복합 민원 이관</button>
+              <div class="quick-label">이런 민원을 많이 찾고 있어요</div><div class="quick-chips">
+                <button class="chip topic-document" onclick="askQuick('주민등록등본 발급 서류랑 수수료 알려줘')"><span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><b>주민등록등본</b><small>발급 서류 · 수수료</small><span class="topic-arrow" aria-hidden="true">↗</span></button>
+                <button class="chip topic-passport" onclick="askQuick('여권 발급 준비물과 운영 시간 알려줘')"><span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 17h6M12 7v6M9 10h6"/></svg></span><b>여권 신청</b><small>준비물 · 운영 시간</small><span class="topic-arrow" aria-hidden="true">↗</span></button>
+                <button class="chip topic-waste" onclick="askQuick('대형폐기물 스티커 구매 방법')"><span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16v7H4zM6 12V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5M4 10v5M20 10v5M6 19v2M18 19v2"/></svg></span><b>대형폐기물</b><small>신고 · 배출 방법</small><span class="topic-arrow" aria-hidden="true">↗</span></button>
+                <button class="chip topic-sign" onclick="askQuick('인감증명서 대리인 발급 구비서류')"><span class="topic-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 3 6 6-11 11-7 1 1-7L15 3Z M12 6l6 6M4 15l5 5"/></svg></span><b>인감증명서</b><small>본인 · 대리 발급</small><span class="topic-arrow" aria-hidden="true">↗</span></button>
               </div>
               <form class="input-box" id="chatForm">
-                <input type="text" id="userInput" placeholder="민원 내용을 입력해 주세요 (예: 여권 발급 준비물)" autocomplete="off" />
-                <button type="submit" class="btn-send" id="sendBtn">전송</button>
-              </form>
+                <input type="text" id="userInput" aria-label="민원 질문" placeholder="예: 여권을 처음 만들려면 무엇이 필요한가요?" maxlength="2000" autocomplete="off" />
+                <button type="submit" class="btn-send" id="sendBtn" aria-label="질문 보내기"><span aria-hidden="true">↑</span></button>
+              </form><p class="input-note">개인정보는 입력하지 마세요. AI 안내는 실제 신청 전 담당 부서에 확인해 주세요.</p>
             </div>
           </div>
 
-          <!-- 사이드 안내 카드 -->
-          <div class="guide-panel">
-            <div class="side-card">
-              <h4>🎯 챗봇 응대 핵심 원칙</h4>
-              <ul class="principle-list">
-                <li><span class="check-icon">✓</span> <span><b>근거 기반 팩트 안내 (FR-1)</b>: 행복구청 공인 편람 및 매뉴얼 지식베이스에서만 답변</span></li>
-                <li><span class="check-icon">✓</span> <span><b>환각(오답) 제로화 (FR-2)</b>: 검색 신뢰도 65점 미만 시 임의 답변 중단 및 담당자 이관</span></li>
-                <li><span class="check-icon">✓</span> <span><b>맥락 보존 이관 (FR-3)</b>: 챗봇과 나눈 질의 내용을 요약하여 상담 공무원에게 전달</span></li>
-                <li><span class="check-icon">✓</span> <span><b>다채널 상담 예약</b>: 전화 상담, 방문 창구 예약, 실시간 채팅 지원</span></li>
-              </ul>
-            </div>
-
-            <div class="side-card">
-              <h4>📍 행복구청 민원콜센터</h4>
-              <p style="font-size: 13px; color: #475569; margin-top: 4px;">
-                대표전화: <b>031-120-0001</b><br/>
-                상담시간: 평일 09:00 ~ 18:00<br/>
-                야간여권: 매주 목요일 20:00까지 연장 운영
-              </p>
-            </div>
-          </div>
         </div>
+        <div class="next-services"><button class="next-service" onclick="switchTab('counters')"><span class="next-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h2M14 14h2"/></svg></span><span><b>방문 전에 대기 인원 확인</b><small>창구 현황을 미리 확인하세요</small></span><span class="next-arrow" aria-hidden="true">→</span></button><button class="next-service" onclick="switchTab('lookup')"><span class="next-icon lookup-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5M8 10.5h5"/></svg></span><span><b>접수한 민원은 어디까지?</b><small>접수번호로 처리 상태를 조회하세요</small></span><span class="next-arrow" aria-hidden="true">→</span></button></div>
+        <div class="service-notice"><b>이용 안내</b><p>담당자 상담은 평일 09:00–18:00에 진행됩니다. 이 서비스는 캡스톤 시범 서비스입니다.</p></div>
       </section>
 
       <!-- 2. 창구 실시간 대기 현황 탭 -->
       <section id="tab-counters" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div>
-            <h2 style="font-size: 19px; font-weight: 800;">관내 창구 실시간 대기 현황 (FR-5)</h2>
-            <p style="font-size: 13px; color: var(--text-muted);">행복구청 본청 및 관내 동 주민센터 창구별 혼잡도를 실시간으로 안내합니다.</p>
+            <h2 style="font-size: 19px; font-weight: 800;">창구 대기 현황</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">행복구청과 주민센터의 현재 대기 인원을 확인하세요.</p>
           </div>
-          <button onclick="loadCounters()" class="chip" style="font-weight: 600;">🔄 새로고침</button>
+          <button onclick="loadCounters()" class="chip" style="font-weight: 600;"> 새로고침</button>
         </div>
 
-        <div id="recommendedBanner" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13.5px; color: #065f46; display: flex; align-items: center; gap: 8px;">
-          <span>💡 <b>추천 창구</b>: 대기 인원이 가장 적은 창구를 분석 중입니다.</span>
+        <div hidden id="recommendedBanner" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13.5px; color: #065f46; display: flex; align-items: center; gap: 8px;">
+          <span><b>추천 창구</b>: 대기 인원이 가장 적은 창구를 분석 중입니다.</span>
         </div>
 
         <div class="counter-grid" id="counterList">
@@ -696,19 +241,19 @@
       <!-- 3. 민원 접수·처리 조회 탭 -->
       <section id="tab-lookup" class="tab-content">
         <div class="lookup-container">
-          <h2 style="font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 8px;">민원 처리 진행 상태 조회 (프로세스 6)</h2>
-          <p style="font-size: 13.5px; color: var(--text-muted); text-align: center; margin-bottom: 24px;">접수 시 발급받으신 민원 접수번호로 현재 처리 단계와 결과를 실시간 확인하실 수 있습니다.</p>
+          <h2 style="font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 8px;">민원 처리 상태 조회</h2>
+          <p style="font-size: 13.5px; color: var(--text-muted); text-align: center; margin-bottom: 24px;">접수 시 발급받으신 민원 접수번호로 현재 처리 단계와 결과를 확인할 수 있습니다.</p>
 
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="lookupInput" class="form-control" placeholder="접수번호를 입력하세요 (예: YSU-20261014-1234)" />
+            <input type="text" id="lookupInput" aria-label="민원 접수번호" class="form-control" placeholder="접수번호를 입력하세요 (예: YSU-20261014-1234)" />
             <button onclick="lookupComplaint()" class="btn-send" style="padding: 10px 24px; font-size: 14px;">조회하기</button>
           </div>
 
           <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);">
-            테스트용 빠른 조회: <button onclick="quickLookup('YSU-20261014-9901')" style="background: none; border: none; color: #2563eb; cursor: pointer; text-decoration: underline;">[샘플 번호 입력]</button>
+            시범 서비스 예시: <button onclick="quickLookup('YSU-20261014-9901')" style="background: none; border: none; color: var(--primary); cursor: pointer; text-decoration: underline;">예시 접수번호 조회</button>
           </div>
 
-          <div class="lookup-result-card" id="lookupResult">
+          <div class="lookup-result-card" id="lookupResult" role="status" aria-live="polite">
             <!-- 조회 결과 출력 영역 -->
           </div>
         </div>
@@ -717,31 +262,31 @@
       <!-- 4. 관리자 모니터링 탭 -->
       <section id="tab-stats" class="tab-content">
         <div style="margin-bottom: 16px;">
-          <h2 style="font-size: 19px; font-weight: 800;">민원 행정 모니터링 대시보드 (FR-4)</h2>
-          <p style="font-size: 13px; color: var(--text-muted);">한도윤 민원팀장 모니터링 뷰: 챗봇 자체 완결률, 이관 현황 및 일자별 인입 지표를 집계합니다.</p>
+          <h2 style="font-size: 19px; font-weight: 800;">민원 서비스 운영 현황</h2>
+          <p style="font-size: 13px; color: var(--text-muted);">민원 접수와 담당자 상담 연계 현황을 확인합니다.</p>
         </div>
 
         <div class="stats-grid">
           <div class="metric-card">
             <div class="metric-lbl">누적 민원 인입</div>
-            <div class="metric-num" id="statTotal">959건</div>
+            <div class="metric-num" id="statTotal">—</div>
           </div>
           <div class="metric-card">
             <div class="metric-lbl">챗봇 자체 완결 건수</div>
-            <div class="metric-num" style="color: #059669;" id="statResolved">789건</div>
+            <div class="metric-num" style="color: var(--success);" id="statResolved">—</div>
           </div>
           <div class="metric-card">
             <div class="metric-lbl">전문 상담 이관 건수</div>
-            <div class="metric-num" style="color: #dc2626;" id="statTransferred">170건</div>
+            <div class="metric-num" style="color: var(--danger);" id="statTransferred">—</div>
           </div>
           <div class="metric-card">
             <div class="metric-lbl">챗봇 자체 완결률 (목표 80%+)</div>
-            <div class="metric-num" style="color: #2563eb;" id="statRate">84.2%</div>
+            <div class="metric-num" style="color: var(--primary);" id="statRate">—</div>
           </div>
         </div>
 
         <div class="table-box">
-          <div class="table-header-box">최근 인입된 민원 질의 로그 (실시간 RAG 응대 및 이관 감지)</div>
+          <div class="table-header-box">최근 민원 상담 내역</div>
           <table>
             <thead>
               <tr>
@@ -762,9 +307,9 @@
 
     <!-- 담당자 상담 예약 모달 -->
     <div class="modal-backdrop" id="reserveModal">
-      <div class="modal-box">
-        <h3 style="font-size: 17px; font-weight: 800; color: #be123c; margin-bottom: 6px;">전문 민원 담당자 상담 예약 (FR-2 / FR-3)</h3>
-        <p style="font-size: 13px; color: #64748b; margin-bottom: 18px;">질의하신 내용이 요약되어 소관 부서 담당자에게 전달됩니다. 연락처와 희망 일시를 남겨주세요.</p>
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reserveTitle" tabindex="-1">
+        <h3 id="reserveTitle" style="font-size: 17px; font-weight: 800; color: #8d642b; margin-bottom: 6px;">담당자 상담 예약</h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 18px;">상담에 필요한 연락처와 상담 방식을 입력하세요. 질문 내용은 담당 부서에 함께 전달됩니다.</p>
 
         <form id="reserveForm">
           <input type="hidden" id="modalSessionId" />
@@ -779,9 +324,9 @@
           <div class="form-group">
             <label>상담 희망 방식</label>
             <select id="modalType" class="form-control">
-              <option value="전화상담">📞 담당 공무원 전화 상담 (근무시간 내 회신)</option>
-              <option value="방문상담">🏢 관내 창구 대면 방문 예약 (사전 예약 대기 면제)</option>
-              <option value="채팅상담">💬 온라인 실시간 1:1 채팅 상담실</option>
+              <option value="전화상담"> 담당 공무원 전화 상담 (근무시간 내 회신)</option>
+              <option value="방문상담"> 관내 창구 방문 상담</option>
+              <option value="채팅상담"> 온라인 채팅 상담</option>
             </select>
           </div>
           <div class="form-group">
@@ -808,22 +353,30 @@
     </div>
 
     <footer>
-      <p>© 2026 연성대학교 컴퓨터소프트웨어과 캡스톤디자인 4조 · 공공기관 민원 안내 AI 챗봇 솔루션 (Vercel & Supabase Cloud 연동)</p>
+      <div class="footer-inner"><div><b>행복톡톡</b><span>행복구청 스마트 민원 안내</span></div><p>연성대학교 컴퓨터소프트웨어과 · 캡스톤디자인 4조<br/>© 2026 행복톡톡. 교육용 시범 서비스입니다.</p></div>
     </footer>
 
     <script>
-      // 탭 전환
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-          btn.classList.add('active');
-          const tabId = 'tab-' + btn.dataset.tab;
-          document.getElementById(tabId).classList.add('active');
-
-          if (btn.dataset.tab === 'counters') loadCounters();
-          if (btn.dataset.tab === 'stats') loadStats();
+      function switchTab(name, focusPanel = true) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          const active = btn.dataset.tab === name;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-current', active ? 'page' : 'false');
         });
+        document.querySelectorAll('.tab-content').forEach(panel => panel.classList.toggle('active', panel.id === 'tab-' + name));
+        if (name === 'counters') loadCounters();
+        if (name === 'stats') loadStats();
+        if (focusPanel) {
+          const panel = document.getElementById('tab-' + name);
+          panel.tabIndex = -1;
+          panel.focus({ preventScroll: true });
+          panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      }
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.setAttribute('aria-controls', 'tab-' + btn.dataset.tab);
+        btn.setAttribute('aria-current', btn.classList.contains('active') ? 'page' : 'false');
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
       });
 
       // 빠른 질문 칩
@@ -844,14 +397,35 @@
       });
 
       let currentSessionId = null;
+      const welcomeMarkup = chatBox.innerHTML;
+      function resetChat() {
+        if (sendBtn.disabled) return;
+        document.body.classList.remove('has-conversation');
+        chatBox.innerHTML = welcomeMarkup;
+        currentSessionId = null;
+        userInput.value = '';
+        userInput.focus();
+      }
+      function setChatBusy(busy) {
+        sendBtn.disabled = busy;
+        sendBtn.innerHTML = busy ? '<span aria-hidden="true">···</span>' : '<span aria-hidden="true">↑</span>';
+        sendBtn.setAttribute('aria-label', busy ? '답변 확인 중' : '질문 보내기');
+        document.querySelectorAll('.quick-chips button, .reset-chat').forEach(btn => btn.disabled = busy);
+        chatBox.setAttribute('aria-busy', String(busy));
+      }
+
 
       async function submitChat() {
         const query = userInput.value.trim();
-        if (!query) return;
+        if (!query || sendBtn.disabled) return;
 
+        if (!document.body.classList.contains('has-conversation')) {
+          chatBox.innerHTML = '';
+          document.body.classList.add('has-conversation');
+        }
         appendMessage('user', query);
         userInput.value = '';
-        sendBtn.disabled = true;
+        setChatBusy(true);
 
         const loadingId = appendLoading();
 
@@ -860,12 +434,13 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query }),
+            signal: AbortSignal.timeout(15000),
           });
           const data = await res.json();
           removeLoading(loadingId);
 
           if (!res.ok || !data.ok) {
-            appendMessage('bot', '죄송합니다. 서버 응답 처리 중 문제가 발생했습니다: ' + (data.message || '오류'));
+            appendMessage('bot', '지금은 상담 서비스에 연결할 수 없습니다. 잠시 후 질문을 다시 보내주세요.');
             return;
           }
 
@@ -874,13 +449,13 @@
           if (data.isTransferred) {
             // 저확신/복합 질의 이관 카드
             const content = `
-              <div style="font-weight: 700; color: #be123c; margin-bottom: 6px;">⚠️ ${escapeHtml(data.title)}</div>
-              <div>${data.answer.replace(/\n/g, '<br/>')}</div>
+              <div style="font-weight: 700; color: #8d642b; margin-bottom: 6px;"> ${escapeHtml(data.title)}</div>
+              <div>${escapeHtml(data.answer).replace(/\n/g, '<br/>')}</div>
               <div class="transfer-card">
-                <h4>🚨 [오안내 방지] 전문 상담 이관 권장</h4>
-                <p>신뢰도 점수: <b style="color: #be123c;">${data.confidenceScore}% (기준치 미달)</b><br/>
-                추측성 오답을 방지하기 위해 행복구청 담당 공무원 상담으로 즉시 연결합니다.</p>
-                <button type="button" class="btn-transfer" onclick="openReserveModal('${escapeHtml(query)}')">👉 전문 담당자 상담 예약하기</button>
+                <h4> 담당자 확인이 필요한 민원입니다</h4>
+                <p>질문에 맞는 안내를 충분히 찾지 못했습니다.<br/>
+                아래에서 담당자 상담을 예약할 수 있습니다.</p>
+                <button type="button" class="btn-transfer" data-reserve-query="${escapeHtml(query)}" data-session-id="${escapeHtml(data.sessionId)}"> 담당자 상담 예약</button>
               </div>
             `;
             appendMessage('bot', content, true);
@@ -888,34 +463,34 @@
             // 정형 민원 완결 카드
             const content = `
               <div style="margin-bottom: 6px;">
-                <span class="confidence-badge conf-high">✓ 높은 신뢰도 ${data.confidenceScore}%</span>
-                <span style="font-size: 11.5px; color: #64748b; margin-left: 6px;">[${escapeHtml(data.category)}]</span>
+                <span class="confidence-badge conf-high">관련 민원 안내</span>
+
               </div>
               <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">${escapeHtml(data.title)}</div>
               <div style="margin-bottom: 10px;">${escapeHtml(data.answer)}</div>
               ${data.requiredDocs ? `
                 <div class="ans-meta-card">
-                  <b>📌 구비 서류 체크리스트:</b>
+                  <b> 구비 서류 체크리스트:</b>
                   ${escapeHtml(data.requiredDocs)}
                 </div>
               ` : ''}
               ${data.fee ? `
                 <div class="ans-meta-card" style="margin-top: 6px; border-left-color: #0284c7;">
-                  <b>💰 수수료 및 발급 요건:</b>
+                  <b> 수수료 및 발급 요건:</b>
                   ${escapeHtml(data.fee)}
                 </div>
               ` : ''}
-              <div style="font-size: 12px; color: #059669; font-weight: 600; margin-top: 10px;">
-                ✨ ${escapeHtml(data.suggestedAction)}
+              <div style="font-size: 12px; color: var(--success); font-weight: 600; margin-top: 10px;">
+                 ${escapeHtml(data.suggestedAction)}
               </div>
             `;
             appendMessage('bot', content, true);
           }
         } catch (err) {
           removeLoading(loadingId);
-          appendMessage('bot', '서버 통신 실패: ' + err.message);
+          appendMessage('bot', '연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
-          sendBtn.disabled = false;
+          setChatBusy(false);
         }
       }
 
@@ -923,7 +498,7 @@
         const div = document.createElement('div');
         div.className = 'msg ' + role;
         div.innerHTML = `
-          <div class="avatar">${role === 'bot' ? '🤖' : '👤'}</div>
+          <div class="avatar">${role === 'bot' ? '톡' : '나'}</div>
           <div class="bubble">${isHtml ? text : escapeHtml(text)}</div>
         `;
         chatBox.appendChild(div);
@@ -936,8 +511,8 @@
         div.id = id;
         div.className = 'msg bot';
         div.innerHTML = `
-          <div class="avatar">🤖</div>
-          <div class="bubble" style="color: #64748b;">행정지식베이스 검색 및 신뢰도 검증 중... ⏳</div>
+          <div class="avatar" aria-hidden="true">톡</div>
+          <div class="bubble" style="color: #64748b;">질문에 맞는 안내를 찾고 있습니다…</div>
         `;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -950,27 +525,54 @@
       }
 
       function escapeHtml(str) {
-        return (str || '').replace(/[&<>'"]/g, tag => ({
+        return String(str ?? '').replace(/[&<>'"]/g, tag => ({
           '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[tag] || tag));
       }
 
+      chatBox.addEventListener('click', event => {
+        const button = event.target.closest('[data-reserve-query]');
+        if (button) openReserveModal(button.dataset.reserveQuery, button.dataset.sessionId);
+      });
       // 상담 예약 모달
       const reserveModal = document.getElementById('reserveModal');
       const reserveForm = document.getElementById('reserveForm');
 
-      function openReserveModal(queryText) {
-        document.getElementById('modalSessionId').value = currentSessionId || '';
+      let modalReturnFocus;
+      function openReserveModal(queryText, sessionId) {
+        document.getElementById('modalSessionId').value = sessionId || '';
         document.getElementById('modalSummary').value = queryText;
+        modalReturnFocus = document.activeElement;
         reserveModal.style.display = 'grid';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('modalName').focus();
       }
 
       function closeModal() {
         reserveModal.style.display = 'none';
+        document.body.style.overflow = '';
+        modalReturnFocus?.focus();
       }
 
+      reserveModal.addEventListener('click', event => { if (event.target === reserveModal) closeModal(); });
+      reserveModal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeModal();
+        if (event.key !== 'Tab') return;
+        const controls = [...reserveModal.querySelectorAll('input:not([type="hidden"]),select,textarea,button')].filter(el => !el.disabled);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
+      document.querySelectorAll('.form-group').forEach(group => {
+        const label = group.querySelector('label'), control = group.querySelector('input, select, textarea');
+        if (label && control) label.htmlFor = control.id;
+      });
       reserveForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitButton = reserveForm.querySelector('[type="submit"]');
+        if (submitButton.disabled) return;
+        submitButton.disabled = true;
+        submitButton.textContent = '접수 중…';
         const body = {
           sessionId: document.getElementById('modalSessionId').value,
           citizenName: document.getElementById('modalName').value,
@@ -985,25 +587,28 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
+            signal: AbortSignal.timeout(15000),
           });
           const data = await res.json();
-          closeModal();
-
           if (data.ok) {
-            alert(`✅ 상담 예약 및 민원 접수가 완료되었습니다!\n\n접수번호: ${data.complaintNo}\n배정부서: ${data.deptName}\n상담방식: ${data.consultType}\n\n등록하신 연락처로 알림톡이 전송되었습니다.`);
+            closeModal();
+            alert(` 상담 예약 및 민원 접수가 완료되었습니다!\n\n접수번호: ${data.complaintNo}\n배정부서: ${data.deptName}\n상담방식: ${data.consultType}`);
             appendMessage('bot', `
               <div style="padding: 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px;">
-                <b style="color: #065f46; font-size: 14px;">✅ 담당자 상담 예약 접수 완료</b><br/>
-                접수번호: <b>${data.complaintNo}</b><br/>
+                <b style="color: #065f46; font-size: 14px;"> 담당자 상담 예약 접수 완료</b><br/>
+                접수번호: <b>${escapeHtml(data.complaintNo)}</b><br/>
                 배정부서: ${escapeHtml(data.deptName)} (${escapeHtml(data.deptTel)})<br/>
-                신청하신 연락처(${escapeHtml(data.citizenTel)})로 접수증 알림톡이 발송되었습니다.
+                접수번호를 보관해 주세요. 내 민원 조회에서 처리 상태를 확인할 수 있습니다.
               </div>
             `, true);
           } else {
             alert('오류: ' + (data.message || '접수 실패'));
           }
         } catch (err) {
-          alert('통신 오류: ' + err.message);
+          alert('접수하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = '상담 예약 접수하기';
         }
       });
 
@@ -1011,16 +616,18 @@
       async function loadCounters() {
         const container = document.getElementById('counterList');
         const banner = document.getElementById('recommendedBanner');
+        banner.hidden = true;
         container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); grid-column: 1/-1;">실시간 창구 현황 조회 중...</div>';
 
         try {
-          const res = await fetch('/api/counters');
+          const res = await fetch('/api/counters', { signal: AbortSignal.timeout(10000) });
           const data = await res.json();
           if (!data.ok) throw new Error(data.message);
 
           if (data.recommended && data.recommended.length > 0) {
+            banner.hidden = false;
             const best = data.recommended[0];
-            banner.innerHTML = `<span>💡 <b>실시간 추천</b>: 현재 <b>${escapeHtml(best.orgName)} ${escapeHtml(best.counterName)}</b>의 대기 인원이 <b>${best.waitingCount}명</b>으로 가장 원활합니다. (위치: ${escapeHtml(best.location)})</span>`;
+            banner.innerHTML = `<span><b>실시간 추천</b>: 현재 <b>${escapeHtml(best.orgName)} ${escapeHtml(best.counterName)}</b>의 대기 인원이 <b>${best.waitingCount}명</b>으로 입니다. (위치: ${escapeHtml(best.location)})</span>`;
           }
 
           container.innerHTML = data.counters.map(c => {
@@ -1044,13 +651,13 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                   <span class="wait-pill ${pillClass}">${statusText}</span>
-                  <span style="color: #64748b;">📍 ${escapeHtml(c.location)}</span>
+                  <span style="color: #64748b;"> ${escapeHtml(c.location)}</span>
                 </div>
               </div>
             `;
-          }).join('');
+          }).join('') || '<div class="state-card"><b>등록된 창구가 없습니다</b><p>창구 정보가 등록되면 이곳에서 확인할 수 있습니다.</p></div>';
         } catch (err) {
-          container.innerHTML = `<div style="padding: 20px; color: #dc2626; grid-column: 1/-1;">창구 정보를 불러오지 못했습니다: ${err.message}</div>`;
+          container.innerHTML = '<div class="state-card"><b>창구 정보를 불러올 수 없습니다</b><p>잠시 후 다시 시도해 주세요.</p><button onclick="loadCounters()">다시 불러오기</button></div>';
         }
       }
 
@@ -1072,10 +679,10 @@
         resBox.innerHTML = '<div style="text-align: center; color: #64748b;">민원 처리 대장을 조회하는 중입니다...</div>';
 
         try {
-          const res = await fetch(`/api/lookup?no=${encodeURIComponent(no)}`);
+          const res = await fetch(`/api/lookup?no=${encodeURIComponent(no)}`, { signal: AbortSignal.timeout(10000) });
           const data = await res.json();
           if (!data.ok) {
-            resBox.innerHTML = `<div style="color: #dc2626; font-size: 13.5px; text-align: center;">${data.message || '조회 내역이 없습니다.'}</div>`;
+            resBox.innerHTML = `<div style="color: var(--danger); font-size: 13.5px; text-align: center;">${escapeHtml(data.message || '조회 내역이 없습니다.')}</div>`;
             return;
           }
 
@@ -1084,7 +691,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
               <div>
                 <span style="font-size: 12px; color: #64748b;">접수번호</span>
-                <div style="font-size: 17px; font-weight: 800; color: #1e3a8a;">${escapeHtml(c.complaintNo)}</div>
+                <div style="font-size: 17px; font-weight: 800; color: var(--primary-dark);">${escapeHtml(c.complaintNo)}</div>
               </div>
               <span class="wait-pill pill-warn" style="font-size: 13px; padding: 5px 12px;">진행 상태: ${escapeHtml(c.processStatus)}</span>
             </div>
@@ -1098,22 +705,21 @@
             </div>
           `;
         } catch (err) {
-          resBox.innerHTML = `<div style="color: #dc2626; font-size: 13.5px;">조회 오류: ${err.message}</div>`;
+          resBox.innerHTML = `<div style="color: var(--danger); font-size: 13.5px;">조회 오류: ${escapeHtml(err.message)}</div>`;
         }
       }
 
       // 통계 대시보드 로드
       async function loadStats() {
         try {
-          const res = await fetch('/api/stats');
+          const res = await fetch('/api/stats', { signal: AbortSignal.timeout(10000) });
           const data = await res.json();
-          if (!data.ok) return;
+          if (!res.ok || !data.ok) throw new Error('Stats unavailable');
 
           document.getElementById('statTotal').textContent = data.summary.totalInquiries + '건';
           document.getElementById('statResolved').textContent = data.summary.selfResolved + '건';
           document.getElementById('statTransferred').textContent = data.summary.transferred + '건';
           document.getElementById('statRate').textContent = data.summary.resolveRate;
-          document.getElementById('bannerRate').textContent = data.summary.resolveRate;
 
           const tbody = document.getElementById('sessionLogs');
           tbody.innerHTML = (data.recentSessions || []).map(s => `
@@ -1130,12 +736,26 @@
             </tr>
           `).join('') || '<tr><td colspan="5" style="text-align: center;">기록이 없습니다.</td></tr>';
         } catch (err) {
-          console.error(err);
+          document.getElementById('sessionLogs').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#77878e">운영 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</td></tr>';
+          ['statTotal','statResolved','statTransferred','statRate'].forEach(id => document.getElementById(id).textContent = '—');
         }
       }
 
-      // 초기 통계 및 창구 로드
-      loadStats();
+      document.getElementById('lookupInput').addEventListener('keydown', event => { if (event.key === 'Enter') lookupComplaint(); });
+      async function checkService() {
+        const status = document.getElementById('serviceStatus');
+        try {
+          const response = await fetch('/api/status', { signal: AbortSignal.timeout(10000) });
+          const data = await response.json();
+          if (!response.ok || !data.ok) throw new Error('Unavailable');
+          status.classList.add('online');
+          status.lastElementChild.textContent = '서비스 연결됨';
+        } catch {
+          status.classList.remove('online');
+          status.lastElementChild.textContent = '연결 대기';
+        }
+      }
+      checkService();
     </script>
   </body>
 </html>
