@@ -1,0 +1,10 @@
+{
+  "name": "ysu-capstone2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=22" }
+}

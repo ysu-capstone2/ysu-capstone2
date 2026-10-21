@@ -4,65 +4,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f7fb" />
-    <title>YSU Capstone 2</title>
-    <style>
-      :root { color-scheme: light; font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
-      * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 28px; }
-      main { width: min(720px, 100%); }
-      .eyebrow { color: #5267d8; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
-      h1 { margin: 12px 0; font-size: clamp(34px, 7vw, 56px); letter-spacing: -.055em; }
-      .intro { max-width: 540px; color: #667085; line-height: 1.7; }
-      .card { margin-top: 30px; padding: 24px; border: 1px solid #e5e9f2; border-radius: 20px; background: white; box-shadow: 0 14px 50px #2632520d; }
-      .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-      .label { font-weight: 700; }
-      .status { display: inline-flex; align-items: center; gap: 8px; color: #667085; font-size: 14px; }
-      .dot { width: 9px; height: 9px; border-radius: 50%; background: #aab2c3; }
-      .dot.good { background: #13a675; box-shadow: 0 0 0 4px #13a6751a; }
-      .dot.bad { background: #e04f5f; }
-      button { margin-top: 22px; border: 0; border-radius: 11px; padding: 12px 17px; color: white; background: #4358d6; font: inherit; font-weight: 700; cursor: pointer; }
-      button:disabled { opacity: .65; cursor: wait; }
-      .foot { margin-top: 18px; color: #8992a5; font-size: 13px; line-height: 1.6; }
-      code { color: #4755a5; }
-    </style>
+    <meta name="description" content="전국 공통 민원 신청 방법과 공식 확인 창구를 안내하는 민원 길잡이입니다." />
+    <title>민원 길잡이 · YSU Capstone 2</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
   </head>
   <body>
     <main>
-      <div class="eyebrow">Yeonsung University · Capstone 2</div>
-      <h1>프로젝트 연결 상태</h1>
-      <p class="intro">웹 클라이언트에서 Vercel 서버 API를 거쳐 Supabase에 연결합니다. 아래 버튼으로 현재 서버와 데이터 API의 응답을 확인할 수 있습니다.</p>
-      <section class="card" aria-live="polite">
-        <div class="row"><span class="label">Vercel 서버 → Supabase</span><span class="status"><i id="dot" class="dot"></i><span id="status">확인 전</span></span></div>
-        <button id="check" type="button">연결 확인</button>
-        <p id="detail" class="foot">확인할 때 API 키는 브라우저에 노출되지 않고 서버에서만 사용됩니다.</p>
-      </section>
-      <p class="foot">현재는 연결 확인용 기본 화면입니다. 서비스 기능과 데이터 테이블은 아직 추가되지 않았습니다.</p>
+      <header class="page-header">
+        <div><div class="eyebrow">YSU CAPSTONE 2</div><h1>민원 길잡이<span class="scope">전국 공통 안내</span></h1><p class="intro">어디에, 어떻게 신청할지 막막할 때.<br />궁금한 민원 절차를 편하게 물어보세요.</p></div>
+        <button id="new-chat" class="secondary" type="button">새 대화</button>
+      </header>
+      <div class="layout">
+        <aside class="sidebar">
+          <section class="card"><div class="section-label">QUICK QUESTIONS</div><h2>자주 묻는 질문</h2><p class="hint">기본 질문은 기다림 없이 바로 안내해 드려요.</p><div id="suggestions" class="suggestions" aria-label="자주 묻는 질문"><p class="hint">질문을 불러오는 중입니다.</p></div></section>
+          <section class="card savings" aria-labelledby="savings-title"><h2 id="savings-title">이번 대화의 답변</h2><div class="stat"><span>AI 호출 없이 답변</span><strong id="saved-count">0회</strong></div><div class="stat"><span>새 AI 답변</span><strong id="ai-count">0회</strong></div><p class="hint">자주 묻는 질문과 저장된 답변을 먼저 활용해 AI 호출을 아낍니다.</p></section>
+          <p class="sidebar-foot">실제 민원 접수와 개인 처리 상태 조회는 해당 공식 사이트에서 진행해 주세요.</p>
+        </aside>
+        <section class="chat card" aria-labelledby="chat-title">
+          <div class="chat-header"><div class="avatar" aria-hidden="true">민</div><div><h2 id="chat-title">민원 안내 도우미</h2><p id="connection" class="hint">연결 상태를 확인하고 있어요.</p></div><span class="online" aria-hidden="true"></span></div>
+          <div id="messages" class="messages" role="log" aria-label="민원 안내 대화" aria-live="polite" aria-relevant="additions"></div>
+          <div class="composer">
+            <p id="status" class="hint" role="status" aria-live="polite"></p>
+            <form id="chat-form"><label for="message" class="sr-only">민원에 관한 질문</label><div class="input-row"><textarea id="message" name="message" rows="2" maxlength="1000" required placeholder="예: 민원은 어디에 신청하나요?" aria-describedby="input-hint"></textarea><button id="send" type="submit">보내기</button></div><div class="input-foot"><span id="input-hint">Enter 전송 · Shift+Enter 줄바꿈</span><span id="length">0 / 1,000</span></div></form>
+            <p class="privacy">주민등록번호·연락처 등 개인정보는 입력하지 마세요. AI 답변의 세부 절차는 공식 창구에서 확인해 주세요.</p>
+          </div>
+        </section>
+      </div>
+      <footer>신청과 확인은 공식 창구에서 <a href="https://www.epeople.go.kr/" target="_blank" rel="noopener noreferrer">국민신문고 ↗</a><a href="https://www.gov.kr/" target="_blank" rel="noopener noreferrer">정부24 ↗</a><a href="https://www.safetyreport.go.kr/" target="_blank" rel="noopener noreferrer">안전신문고 ↗</a></footer>
     </main>
-    <script>
-      const button = document.querySelector('#check');
-      const status = document.querySelector('#status');
-      const detail = document.querySelector('#detail');
-      const dot = document.querySelector('#dot');
-      button.addEventListener('click', async () => {
-        button.disabled = true;
-        status.textContent = '확인 중';
-        detail.textContent = '서버에서 Supabase 응답을 기다리고 있습니다.';
-        dot.className = 'dot';
-        try {
-          const response = await fetch('/api/status', { cache: 'no-store' });
-          const result = await response.json();
-          if (!response.ok || !result.ok) throw new Error(result.message || '연결에 실패했습니다.');
-          status.textContent = '정상 연결';
-          detail.textContent = 'Vercel 서버가 Supabase Data API에서 정상 응답을 받았습니다.';
-          dot.className = 'dot good';
-        } catch (error) {
-          status.textContent = '연결 실패';
-          detail.textContent = error.message || '서버 응답을 확인하지 못했습니다.';
-          dot.className = 'dot bad';
-        } finally {
-          button.disabled = false;
-        }
-      });
-    </script>
   </body>
 </html>
