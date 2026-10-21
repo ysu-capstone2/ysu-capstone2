@@ -98,3 +98,33 @@ npm run test:live
 ```
 
 실제 연동 검증은 로그인, 사용자 간 접수 격리, 직접 Data API RLS 차단, 관리자 집계·상태 변경, 동시 번호표 발급, 호출 후 대기 인원, 프로필 권한 위조 차단, 토큰 갱신·로그아웃을 확인합니다. 테스트가 만든 접수·창구·번호표·임시 계정만 정리하며, 제공된 로그인 테스트 계정은 유지합니다. 회원가입의 메일 전달·수신은 이 자동 검사에 포함하지 않습니다.
+
+
+## 프로젝트 변경 후 테스트 로그인이 안 될 때
+
+Supabase 프로젝트가 바뀌면 이전 프로젝트의 사용자 계정과 DB 테이블은 자동으로 복사되지 않습니다. 로그인에서 `invalid_credentials`가 나거나, 로그인 후 마이페이지·운영 통계에서 503이 나면 다음 순서로 확인합니다.
+
+1. 배포 환경과 `.env.local`의 `SUPABASE_URL`이 의도한 프로젝트인지 확인합니다. URL·공개용 키·서버 전용 키는 모두 같은 프로젝트의 값이어야 합니다.
+2. 기존 민원 DB에 `chat_session`이 이미 있다면 아래 명령으로 회원 스키마 적용 내용을 먼저 검토합니다. `POSTGRES_URL_NON_POOLING`은 같은 프로젝트의 서버 전용 연결 문자열이어야 하며, Git에서 제외된 `.env.local`에만 보관합니다. `PSQL_BIN`으로 psql 실행 경로를 지정할 수 있습니다.
+
+   ```sh
+   node --env-file=.env.local scripts/setup-database.mjs
+   # .local/database-bootstrap.sql 검토 후 적용
+   node --env-file=.env.local scripts/setup-database.mjs --apply
+   ```
+
+   기존 상담·민원 데이터를 삭제하지 않고 새 접수·번호표 테이블 및 관리자 통계 함수를 추가합니다. 기존 개인정보 테이블의 일반 사용자 접근도 제한합니다. 회원 스키마가 일부만 있는 경우에는 임의 변경을 중단합니다. 이미 회원 스키마가 있으면 기본 스키마를 다시 적용하지 않습니다.
+3. 이미 전달받은 계정 정보 파일이 `.local/test-account.json`, `.local/admin-account.json`에 있는 경우, 다음 도구로 변경된 프로젝트의 계정을 확인할 수 있습니다. 누락 계정만 생성하며 기존 계정의 비밀번호나 권한을 바꾸지 않습니다. 메일도 보내지 않습니다.
+
+   ```sh
+   node --env-file=.env.local scripts/sync-test-accounts.mjs
+   node --env-file=.env.local scripts/sync-test-accounts.mjs --apply
+   ```
+
+4. 실제 사이트에서 로그인·쿠키 세션·관리자 권한·로그인 후 데이터·로그아웃을 확인합니다. 검증 도구는 비밀번호나 세션 토큰을 출력하지 않습니다.
+
+   ```sh
+   node scripts/check-login.mjs https://ysu-capstone2-beta.vercel.app
+   ```
+
+2026-10-21: 위 배포 주소에서 일반·관리자 계정을 복구하고 로그인, 세션 유지, 내 접수/번호표, 관리자 운영 통계의 200 응답을 확인했습니다. 일반 계정의 운영 통계 접근은 403, 비로그인 접근은 401로 차단됩니다. 비밀번호는 기존 전달 값 그대로이며 Git에는 포함하지 않습니다.
