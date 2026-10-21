@@ -8,6 +8,8 @@ import counters from '../api/counters.js';
 import lookup from '../api/lookup.js';
 import reserve from '../api/reserve.js';
 import stats from '../api/stats.js';
+import auth from '../api/auth.js';
+import admin from '../api/admin.js';
 
 const root = new URL('../', import.meta.url);
 const assets = new Map([
@@ -17,8 +19,11 @@ const assets = new Map([
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/portal.css', ['portal.css', 'text/css; charset=utf-8']],
+  ...['login.html','signup.html','mypage.html','admin.html'].map(file => ['/'+file,[file,'text/html; charset=utf-8']]),
+  ['/account.js',['account.js','text/javascript; charset=utf-8']],
+  ['/account.css',['account.css','text/css; charset=utf-8']],
 ]);
-const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats]]);
+const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats], ['/api/auth', auth], ['/api/admin', admin]]);
 
 http.createServer(async (req, res) => {
   res.status = (code) => { res.statusCode = code; return res; };
@@ -30,14 +35,6 @@ http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     if (routes.has(url.pathname)) {
       req.query = Object.fromEntries(url.searchParams);
-      if (req.method === 'POST' && ['/api/reserve'].includes(url.pathname)) {
-        let body = '';
-        for await (const chunk of req) {
-          body += chunk;
-          if (Buffer.byteLength(body) > 20000) return res.status(413).json({ ok: false, message: '요청 내용이 너무 깁니다.' });
-        }
-        try { req.body = JSON.parse(body); } catch { return res.status(400).json({ ok: false, message: 'JSON 형식을 확인해 주세요.' }); }
-      }
       return await routes.get(url.pathname)(req, res);
     }
     const asset = assets.get(url.pathname);

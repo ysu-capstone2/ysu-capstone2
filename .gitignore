@@ -235,3 +235,6 @@ __marimo__/
 !.env.example
 documents/
 .DS_Store
+
+# Local administrator bootstrap credentials
+.local/
