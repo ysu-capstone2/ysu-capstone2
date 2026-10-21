@@ -1,3 +1,5 @@
+import { getGeminiApiKey, getGeminiModel } from './_gemini.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -7,9 +9,16 @@ export default async function handler(req, res) {
   const projectUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   const publicKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const geminiConfigured = Boolean(getGeminiApiKey());
+  const geminiModel = getGeminiModel();
 
   if (!projectUrl || (!serviceKey && !publicKey)) {
-    return res.status(503).json({ ok: false, message: 'Supabase 환경변수가 설정되지 않았습니다.' });
+    return res.status(503).json({
+      ok: false,
+      geminiConfigured,
+      geminiModel,
+      message: 'Supabase 환경변수가 설정되지 않았습니다.',
+    });
   }
 
   try {
@@ -27,7 +36,12 @@ export default async function handler(req, res) {
       });
 
       if (response.ok) {
-        return res.status(200).json({ ok: true, service: 'supabase-data-api' });
+        return res.status(200).json({
+          ok: true,
+          service: 'supabase-data-api',
+          geminiConfigured,
+          geminiModel,
+        });
       }
     }
 
@@ -38,11 +52,26 @@ export default async function handler(req, res) {
     });
 
     if (authResponse.ok) {
-      return res.status(200).json({ ok: true, service: 'supabase-auth-api' });
+      return res.status(200).json({
+        ok: true,
+        service: 'supabase-auth-api',
+        geminiConfigured,
+        geminiModel,
+      });
     }
 
-    return res.status(502).json({ ok: false, message: 'Supabase API에서 오류 응답을 받았습니다.' });
+    return res.status(502).json({
+      ok: false,
+      geminiConfigured,
+      geminiModel,
+      message: 'Supabase API에서 오류 응답을 받았습니다.',
+    });
   } catch (error) {
-    return res.status(502).json({ ok: false, message: error.message || 'Supabase에 연결하지 못했습니다.' });
+    return res.status(502).json({
+      ok: false,
+      geminiConfigured,
+      geminiModel,
+      message: error.message || 'Supabase에 연결하지 못했습니다.',
+    });
   }
 }

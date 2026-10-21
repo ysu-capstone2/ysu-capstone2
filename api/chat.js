@@ -1,4 +1,47 @@
 import { supabaseRequest } from './_supabase.js';
+import { getGeminiApiKey, generateCivilResponseWithGemini } from './_gemini.js';
+
+function evaluateByKeywordRag(cleanQuery, knowledges) {
+  let bestMatch = null;
+  let highestScore = 0;
+
+  for (const item of knowledges) {
+    let score = 0;
+    const qLower = cleanQuery.toLowerCase();
+    const titleLower = (item.title || '').toLowerCase();
+    const contentLower = (item.content || '').toLowerCase();
+    const keywords = item.keywords || [];
+
+    for (const kw of keywords) {
+      if (qLower.includes(kw.toLowerCase())) {
+        score += 35;
+      }
+    }
+
+    if (titleLower.includes(qLower) || qLower.includes(titleLower)) {
+      score += 40;
+    } else {
+      const titleTokens = titleLower.split(/\s+/);
+      for (const token of titleTokens) {
+        if (token.length > 1 && qLower.includes(token)) score += 15;
+      }
+    }
+
+    const words = qLower.split(/\s+/);
+    for (const w of words) {
+      if (w.length > 1 && contentLower.includes(w)) score += 8;
+    }
+
+    const normalizedScore = Math.min(Math.round(score), 98);
+
+    if (normalizedScore > highestScore) {
+      highestScore = normalizedScore;
+      bestMatch = item;
+    }
+  }
+
+  return { bestMatch, highestScore };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,95 +58,112 @@ export default async function handler(req, res) {
   const cleanQuery = query.trim();
 
   try {
-    // 1. 행정지식베이스 전체 목록 로드
+    // 1. 행정지식베이스 전체 목록 로드 (Supabase RAG 컨텍스트)
     const knowledges = await supabaseRequest('admin_knowledge?select=*');
 
-    // 2. 검색 및 신뢰도 점수 산출 알고리즘
-    let bestMatch = null;
-    let highestScore = 0;
+    const CONFIDENCE_THRESHOLD = 65;
+    let responseData = {};
+    let sessionStatus = '자체완결';
+    let matchedKnowledgeId = null;
 
-    for (const item of knowledges) {
-      let score = 0;
-      const qLower = cleanQuery.toLowerCase();
-      const titleLower = (item.title || '').toLowerCase();
-      const contentLower = (item.content || '').toLowerCase();
-      const keywords = item.keywords || [];
+    const hasGeminiKey = Boolean(getGeminiApiKey());
+    let usedGemini = false;
 
-      // 키워드 일치 점수
-      for (const kw of keywords) {
-        if (qLower.includes(kw.toLowerCase())) {
-          score += 35;
+    // 2-A. GEMINI_API_KEY가 설정되어 있으면 Gemini (gemini-3.8-flash) + RAG로 응답 생성
+    if (hasGeminiKey) {
+      try {
+        const geminiResult = await generateCivilResponseWithGemini(cleanQuery, knowledges);
+        usedGemini = true;
+
+        const validKnowledge = knowledges.find((k) => k.id === geminiResult.matchedKnowledgeId);
+        matchedKnowledgeId = validKnowledge ? validKnowledge.id : null;
+
+        if (!geminiResult.isTransferred && geminiResult.confidenceScore >= CONFIDENCE_THRESHOLD) {
+          sessionStatus = '자체완결';
+          responseData = {
+            ok: true,
+            aiEngine: geminiResult.model,
+            isTransferred: false,
+            confidenceScore: geminiResult.confidenceScore,
+            knowledgeId: matchedKnowledgeId,
+            category: geminiResult.category || (validKnowledge ? validKnowledge.category_code : '일반행정'),
+            title: geminiResult.title,
+            answer: geminiResult.answer,
+            requiredDocs: geminiResult.requiredDocs || (validKnowledge ? validKnowledge.required_docs : ''),
+            fee: geminiResult.fee || (validKnowledge ? validKnowledge.fee : ''),
+            suggestedAction: geminiResult.suggestedAction,
+          };
+        } else {
+          sessionStatus = '상담연계대기';
+          const depts = await supabaseRequest('department_info?select=*&limit=5');
+          responseData = {
+            ok: true,
+            aiEngine: geminiResult.model,
+            isTransferred: true,
+            confidenceScore: Math.min(geminiResult.confidenceScore, 64),
+            title: geminiResult.title || '복합·전문 상담 대상 민원',
+            answer:
+              geminiResult.answer ||
+              '질의하신 내용은 정확한 사실관계 및 법령 검토가 필요한 복합 민원입니다.\n\n오안내 방지 원칙에 따라 행복구청 전문 민원 담당자에게 연결해 드립니다. 아래에서 원하시는 상담 방식을 선택해 주세요.',
+            departments: depts,
+            consultTypes: [
+              { type: '전화상담', desc: '담당 공무원이 확인 후 직접 전화 연락 (평일 09:00~18:00)' },
+              { type: '방문상담', desc: '본청 및 주민센터 사전 예약 후 대기 없이 대면 상담' },
+              { type: '채팅상담', desc: '실시간 1:1 온라인 채팅 상담실 대기' },
+            ],
+          };
         }
-      }
-
-      // 제목 일치 점수
-      if (titleLower.includes(qLower) || qLower.includes(titleLower)) {
-        score += 40;
-      } else {
-        const titleTokens = titleLower.split(/\s+/);
-        for (const token of titleTokens) {
-          if (token.length > 1 && qLower.includes(token)) score += 15;
-        }
-      }
-
-      // 본문 단어 일치
-      const words = qLower.split(/\s+/);
-      for (const w of words) {
-        if (w.length > 1 && contentLower.includes(w)) score += 8;
-      }
-
-      // 최대 98점 제한 (수학적 보정)
-      const normalizedScore = Math.min(Math.round(score), 98);
-
-      if (normalizedScore > highestScore) {
-        highestScore = normalizedScore;
-        bestMatch = item;
+      } catch (geminiError) {
+        console.warn('Gemini API 호출 실패, 키워드 RAG 엔진으로 대체합니다:', geminiError.message);
       }
     }
 
-    // 신뢰도 임계치: 65점 이상이면 정형 민원 자체 완결, 미만이면 저확신 상담 연계 (FR-2)
-    const CONFIDENCE_THRESHOLD = 65;
-    const isSelfResolved = highestScore >= CONFIDENCE_THRESHOLD && bestMatch !== null;
+    // 2-B. GEMINI_API_KEY가 없거나 호출 실패 시 키워드 기반 RAG 폴백
+    if (!usedGemini) {
+      const { bestMatch, highestScore } = evaluateByKeywordRag(cleanQuery, knowledges);
+      const isSelfResolved = highestScore >= CONFIDENCE_THRESHOLD && bestMatch !== null;
+      sessionStatus = isSelfResolved ? '자체완결' : '상담연계대기';
+      matchedKnowledgeId = isSelfResolved ? bestMatch.id : null;
 
-    let responseData = {};
-    let sessionStatus = isSelfResolved ? '자체완결' : '상담연계대기';
-
-    if (isSelfResolved) {
-      responseData = {
-        ok: true,
-        isTransferred: false,
-        confidenceScore: highestScore,
-        knowledgeId: bestMatch.id,
-        category: bestMatch.category_code,
-        title: bestMatch.title,
-        answer: bestMatch.content,
-        requiredDocs: bestMatch.required_docs,
-        fee: bestMatch.fee,
-        suggestedAction: '구비 서류를 확인하신 후 온라인(정부24) 또는 관할 기관 창구에서 발급받으세요.',
-      };
-    } else {
-      // 저확신/복합/모호 질의
-      const depts = await supabaseRequest('department_info?select=*&limit=5');
-      responseData = {
-        ok: true,
-        isTransferred: true,
-        confidenceScore: Math.max(highestScore, 28), // 저확신 점수 표시
-        title: '복합·전문 상담 대상 민원',
-        answer: '질의하신 내용은 정확한 사실관계 및 법령 검토가 필요한 복합 민원입니다.\n\n오안내 방지 원칙에 따라 행복구청 전문 민원 담당자에게 연결해 드립니다. 아래에서 원하시는 상담 방식을 선택해 주세요.',
-        departments: depts,
-        consultTypes: [
-          { type: '전화상담', desc: '담당 공무원이 확인 후 직접 전화 연락 (평일 09:00~18:00)' },
-          { type: '방문상담', desc: '본청 및 주민센터 사전 예약 후 대기 없이 대면 상담' },
-          { type: '채팅상담', desc: '실시간 1:1 온라인 채팅 상담실 대기' },
-        ],
-      };
+      if (isSelfResolved) {
+        responseData = {
+          ok: true,
+          aiEngine: 'rule-rag-fallback',
+          isTransferred: false,
+          confidenceScore: highestScore,
+          knowledgeId: bestMatch.id,
+          category: bestMatch.category_code,
+          title: bestMatch.title,
+          answer: bestMatch.content,
+          requiredDocs: bestMatch.required_docs,
+          fee: bestMatch.fee,
+          suggestedAction: '구비 서류를 확인하신 후 온라인(정부24) 또는 관할 기관 창구에서 발급받으세요.',
+        };
+      } else {
+        const depts = await supabaseRequest('department_info?select=*&limit=5');
+        responseData = {
+          ok: true,
+          aiEngine: 'rule-rag-fallback',
+          isTransferred: true,
+          confidenceScore: Math.max(highestScore, 28),
+          title: '복합·전문 상담 대상 민원',
+          answer:
+            '질의하신 내용은 정확한 사실관계 및 법령 검토가 필요한 복합 민원입니다.\n\n오안내 방지 원칙에 따라 행복구청 전문 민원 담당자에게 연결해 드립니다. 아래에서 원하시는 상담 방식을 선택해 주세요.',
+          departments: depts,
+          consultTypes: [
+            { type: '전화상담', desc: '담당 공무원이 확인 후 직접 전화 연락 (평일 09:00~18:00)' },
+            { type: '방문상담', desc: '본청 및 주민센터 사전 예약 후 대기 없이 대면 상담' },
+            { type: '채팅상담', desc: '실시간 1:1 온라인 채팅 상담실 대기' },
+          ],
+        };
+      }
     }
 
     // 3. 민원대화기록 테이블(chat_session)에 적재
     const sessionRecord = await supabaseRequest('chat_session', {
       method: 'POST',
       body: JSON.stringify({
-        knowledge_id: isSelfResolved ? bestMatch.id : null,
+        knowledge_id: matchedKnowledgeId,
         citizen_id: citizenId,
         channel: 'WEB',
         query: cleanQuery,
