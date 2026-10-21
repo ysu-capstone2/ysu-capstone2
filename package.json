@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "test:live": "node --env-file=.env.local scripts/check-live.mjs"
   },
   "engines": { "node": ">=22" }
 }

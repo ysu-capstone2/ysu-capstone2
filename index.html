@@ -8,6 +8,7 @@
     <title>행복톡톡 · 더 쉬운 민원생활</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
     <link rel="stylesheet" href="/portal.css" />
+    <link rel="stylesheet" href="/account.css" />
   </head>
   <body>
     <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -27,9 +28,9 @@
           <button class="category-tab active" data-tab="chat" aria-pressed="true">AI 민원상담</button>
           <button class="category-tab" data-tab="counters" aria-pressed="false">창구 대기</button>
           <button class="category-tab" data-tab="lookup" aria-pressed="false">접수 조회</button>
-          <button class="category-tab" data-tab="stats" aria-pressed="false">운영 현황</button>
+          <button class="category-tab" data-tab="stats" aria-pressed="false">관리자</button>
         </nav>
-        <a class="guide-link" href="/guide.html">민원 길잡이 <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <nav class="account-nav" id="accountNav" aria-label="내 계정"><a href="/login.html">로그인</a></nav><a class="guide-link" href="/guide.html">민원 길잡이 <svg class="icon"><use href="#i-arrow"/></svg></a>
       </div>
     </header>
     <main>
@@ -47,7 +48,7 @@
         <button class="service-shortcut" data-open-tab="chat"><span class="service-icon blue"><svg class="icon"><use href="#i-chat"/></svg></span><span><strong>AI 민원상담</strong><small>궁금한 민원, 바로 물어보세요</small></span><svg class="icon chevron"><use href="#i-arrow"/></svg></button>
         <button class="service-shortcut" data-open-tab="counters"><span class="service-icon mint"><svg class="icon"><use href="#i-ticket"/></svg></span><span><strong>창구 대기현황</strong><small>방문 전 대기 인원을 확인해요</small></span><svg class="icon chevron"><use href="#i-arrow"/></svg></button>
         <button class="service-shortcut" data-open-tab="lookup"><span class="service-icon orange"><svg class="icon"><use href="#i-search"/></svg></span><span><strong>내 민원 조회</strong><small>접수한 민원은 어디쯤 왔을까요?</small></span><svg class="icon chevron"><use href="#i-arrow"/></svg></button>
-        <button class="service-shortcut" data-open-tab="stats"><span class="service-icon violet"><svg class="icon"><use href="#i-chart"/></svg></span><span><strong>민원 운영현황</strong><small>우리 동네 상담 현황을 한눈에</small></span><svg class="icon chevron"><use href="#i-arrow"/></svg></button>
+        <button class="service-shortcut" data-open-tab="stats"><span class="service-icon violet"><svg class="icon"><use href="#i-chart"/></svg></span><span><strong>관리자 운영현황</strong><small>관리자만 운영 정보를 확인해요</small></span><svg class="icon chevron"><use href="#i-arrow"/></svg></button>
       </section>
       <div class="workspace"><div class="container">
         <section id="tab-chat" class="tab-content active" aria-labelledby="chat-section-title">
@@ -68,12 +69,13 @@
           </div>
         </section>
         <section id="tab-counters" class="tab-content" aria-labelledby="counters-title"><div class="section-heading"><div><p class="eyebrow">창구 대기현황</p><h2 id="counters-title">기다림은 줄이고,<br class="mobile-only" /> 방문은 더 편하게.</h2><p>민원실에 가기 전, 창구별 대기 인원을 확인해 보세요.</p></div><button onclick="loadCounters()" class="btn-secondary">새로고침 <span aria-hidden="true">↻</span></button></div><div id="recommendedBanner" class="recommend-gov-banner"><span class="tiny-dot"></span> 대기 인원을 비교하고 여유로운 창구를 찾아드려요.</div><div class="counter-tiles-grid" id="counterList"><div class="empty-state">창구 현황을 확인하고 있어요.</div></div></section>
-        <section id="tab-lookup" class="tab-content" aria-labelledby="lookup-title"><div class="section-heading"><div><p class="eyebrow">내 민원 조회</p><h2 id="lookup-title">내 민원은<br />어디까지 왔을까요?</h2><p>접수번호로 진행 상황을 간편하게 확인해요.</p></div></div><div class="lookup-box-centered"><span class="lookup-icon service-icon blue"><svg class="icon"><use href="#i-document"/></svg></span><h3>접수번호를 알려주세요</h3><p class="lookup-sub">상담 예약 후 안내받은 접수번호를 입력해 주세요.</p><div class="lookup-search-well"><label class="sr-only" for="lookupInput">민원 접수번호</label><div class="lookup-input-row"><input type="text" id="lookupInput" class="text-input" placeholder="예: YSU-20261014-9901" /><button onclick="lookupComplaint()" class="btn-primary">조회하기</button></div><button class="sample-link" onclick="quickLookup('YSU-20261014-9901')">시연용 접수번호로 살펴보기 <span aria-hidden="true">→</span></button></div><div class="lookup-result-surface" id="lookupResult" aria-live="polite"></div></div></section>
-        <section id="tab-stats" class="tab-content" aria-labelledby="stats-title"><div class="section-heading"><div><p class="eyebrow">민원 운영현황</p><h2 id="stats-title">더 나은 민원 서비스를 위해.</h2><p>민원 상담과 담당자 연결 현황을 한눈에 살펴봐요.</p></div><button type="button" onclick="loadStats()" class="btn-secondary">새로고침 <span aria-hidden="true">↻</span></button></div><div class="metrics-row"><div class="gov-metric-card"><span class="metric-dot blue"></span><div class="gov-metric-lbl">전체 민원 상담</div><div class="gov-metric-val" id="statTotal">—</div></div><div class="gov-metric-card green"><span class="metric-dot mint"></span><div class="gov-metric-lbl">AI가 안내한 상담</div><div class="gov-metric-val teal" id="statResolved">—</div></div><div class="gov-metric-card red"><span class="metric-dot orange"></span><div class="gov-metric-lbl">담당자에게 연결</div><div class="gov-metric-val coral" id="statTransferred">—</div></div><div class="gov-metric-card blue"><span class="metric-dot violet"></span><div class="gov-metric-lbl">AI 상담 완결률</div><div class="gov-metric-val blue" id="statRate">—</div></div></div><div class="gov-table-card"><div class="gov-table-title"><h3>최근 민원 상담</h3><span>상담 내역이 여기에 표시돼요</span></div><div class="table-scroll"><table class="gov-table"><thead><tr><th>상담 시각</th><th>질문 내용</th><th>참고 점수</th><th>처리 상태</th><th>상담 채널</th></tr></thead><tbody id="sessionLogs"><tr><td colspan="5" class="table-empty">상담 기록을 확인하고 있어요.</td></tr></tbody></table></div></div></section>
+        <section id="tab-lookup" class="tab-content" aria-labelledby="lookup-title"><div class="section-heading"><div><p class="eyebrow">내 민원 조회</p><h2 id="lookup-title">내 민원은<br />어디까지 왔을까요?</h2><p>로그인하고 본인 명의의 접수 내역을 확인해요.</p></div></div><div class="lookup-box-centered"><span class="lookup-icon service-icon blue"><svg class="icon"><use href="#i-document"/></svg></span><h3>접수번호를 알려주세요</h3><p class="lookup-sub">상담 예약 후 안내받은 접수번호를 입력해 주세요.</p><div id="lookupAuthGate" class="lookup-auth-gate" hidden>내 접수 내역은 로그인 후 확인할 수 있어요.<br><a class="btn-primary" href="/login.html?next=%2F%3Ftab%3Dlookup">로그인하고 조회하기</a></div><div class="lookup-search-well" id="lookupMemberSearch" hidden><label class="sr-only" for="lookupInput">민원 접수번호</label><div class="lookup-input-row"><input type="text" id="lookupInput" class="text-input" placeholder="안내받은 접수번호를 입력해 주세요" /><button onclick="lookupComplaint()" class="btn-primary">조회하기</button></div><a class="sample-link" href="/mypage.html">접수번호를 모르겠다면 마이페이지에서 확인하세요 →</a></div><div class="lookup-result-surface" id="lookupResult" aria-live="polite"></div></div></section>
+        <section id="tab-stats" class="tab-content"><div class="empty-state"><h2>관리자 운영 페이지</h2><p>운영 현황과 접수 관리는 관리자 로그인 후 이용할 수 있어요.</p><a class="btn-primary" href="/admin.html">관리자 페이지로 이동</a></div></section>
       </div></div>
     </main>
     <div class="modal-backdrop" id="reserveModal"><section class="modal-content" role="dialog" aria-modal="true" aria-labelledby="reserve-title" tabindex="-1"><div class="modal-header"><div><p class="eyebrow">담당자 상담</p><h2 id="reserve-title">편한 방법으로<br />상담을 예약해 보세요.</h2></div><button class="icon-button" type="button" onclick="closeModal()" aria-label="예약 창 닫기"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="modal-description">질문 내용과 연락받을 정보를 남겨주세요.<br />선택한 담당 부서에서 상담 내용을 확인해요.</p><form id="reserveForm"><input type="hidden" id="modalSessionId" /><div class="form-field"><label for="modalName">이름</label><input type="text" id="modalName" class="text-input" required placeholder="이름을 입력해 주세요" autocomplete="name" /></div><div class="form-field"><label for="modalTel">연락받을 휴대전화</label><input type="tel" id="modalTel" class="text-input" required placeholder="010-0000-0000" autocomplete="tel" /></div><div class="form-columns"><div class="form-field"><label for="modalType">상담 방법</label><select id="modalType" class="form-select"><option value="전화상담">전화상담</option><option value="방문상담">방문상담</option><option value="채팅상담">채팅상담</option></select></div><div class="form-field"><label for="modalDept">상담 부서</label><select id="modalDept" class="form-select"><option value="D01">종합민원과</option><option value="D02">세무1과</option><option value="D03">건축과</option><option value="D04">행복1동 주민센터</option><option value="D05">행복2동 주민센터</option></select></div></div><div class="form-field"><label for="modalSummary">상담할 내용</label><textarea id="modalSummary" class="form-textarea" rows="2" readonly></textarea></div><div class="modal-actions"><button type="button" onclick="closeModal()" class="btn-secondary">취소</button><button type="submit" class="btn-primary">예약 신청하기</button></div><p class="prototype-note">캡스톤 시연용 예약 기능이며, 실제 행정기관에 접수되지 않습니다.</p></form></section></div>
     <footer class="site-footer"><div class="container footer-inner"><div><a class="brand footer-brand" href="/">행복톡톡</a><p>누구에게나 쉬운 민원생활</p><small>© YSU Capstone 2. 연성대학교 클라우드 캡스톤 시연 서비스</small></div><div class="footer-links"><a href="https://www.gov.kr/" target="_blank" rel="noopener noreferrer">정부24 ↗</a><a href="https://www.epeople.go.kr/" target="_blank" rel="noopener noreferrer">국민신문고 ↗</a><a href="/guide.html">전국 공통 민원 길잡이 ↗</a></div></div></footer>
+    <script src="/account.js"></script>
     <script>
 
       // 탭 네비게이션
@@ -85,7 +87,7 @@
         });
         document.querySelectorAll('.tab-content').forEach(section => section.classList.toggle('active', section.id === 'tab-' + name));
         if (name === 'counters') loadCounters();
-        if (name === 'stats') loadStats();
+        if (name === 'stats') { location.href='/admin.html'; return; }
         if (scroll) document.getElementById('tab-' + name).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
       }
       document.querySelectorAll('.category-tab').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
@@ -239,7 +241,11 @@
       const reserveForm = document.getElementById('reserveForm');
 
       let lastModalFocus = null;
-      function openReserveModal(queryText = '') {
+      async function openReserveModal(queryText = '') {
+        await portalAuth.ready;
+        if (!portalAuth.user) { location.href=portalAuth.loginUrl('/?tab=chat'); return; }
+        document.getElementById('modalName').value=portalAuth.user.name;
+        document.getElementById('modalTel').value=portalAuth.user.phone;
         document.getElementById('modalSessionId').value = currentSessionId || '';
         document.getElementById('modalSummary').value = queryText;
         lastModalFocus = document.activeElement;
@@ -267,6 +273,9 @@
 
       reserveForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitButton=reserveForm.querySelector('button[type=submit]');
+        if(submitButton.disabled)return;
+        submitButton.disabled=true;
         const body = {
           sessionId: document.getElementById('modalSessionId').value,
           citizenName: document.getElementById('modalName').value,
@@ -286,13 +295,13 @@
           closeModal();
 
           if (data.ok) {
-            alert(`✅ 민원 상담 예약이 정상 접수되었습니다.\n\n· 접수번호: ${data.complaintNo}\n· 배정부서: ${data.deptName}\n· 상담방식: ${data.consultType}\n\n입력하신 연락처로 국민비서/알림톡 안내가 발송되었습니다.`);
+            alert(`✅ 민원 상담 예약이 정상 접수되었습니다.\n\n· 접수번호: ${data.complaintNo}\n· 배정부서: ${data.deptName}\n· 상담방식: ${data.consultType}\n\n마이페이지에서 처리 상태를 확인해 주세요.`);
             appendMessage('bot', `
               <div style="padding: 14px; background: var(--gov-green-light); border: 1px solid var(--gov-green-border); border-left: 4px solid var(--gov-green); border-radius: var(--radius-xs);">
                 <b style="color: var(--gov-green); font-size: 0.95rem;">✓ 담당 공무원 상담 예약 접수 완료</b><br/>
                 · 접수번호: <b style="font-family: var(--font-mono); color: var(--gov-navy);">${data.complaintNo}</b><br/>
                 · 소관부서: ${escapeHtml(data.deptName)} (${escapeHtml(data.deptTel)})<br/>
-                · 신청연락처(${escapeHtml(data.citizenTel)})로 접수 안내 메시지가 발송되었습니다.
+                · 마이페이지에서 접수 내역과 처리 상태를 확인할 수 있어요.
               </div>
             `, true);
           } else {
@@ -300,62 +309,36 @@
           }
         } catch (err) {
           alert('통신 오류: ' + err.message);
-        }
+        } finally { submitButton.disabled=false; }
       });
 
       // 창구 대기 현황 조회
+      let counterLoading=false;
       async function loadCounters() {
-        const container = document.getElementById('counterList');
-        const banner = document.getElementById('recommendedBanner');
-        container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted); grid-column: 1/-1; background: #fff; border: 1px solid var(--border-default);">창구 현황을 불러오는 중입니다...</div>';
-
+        if(counterLoading)return;
+        counterLoading=true;
+        const container=document.getElementById('counterList'),banner=document.getElementById('recommendedBanner');
         try {
-          const res = await fetch('/api/counters');
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.message);
-
-          if (data.recommended && data.recommended.length > 0) {
-            const best = data.recommended[0];
-            banner.innerHTML = `<span>✓ <b>인근 원활 창구 추천</b>: 현재 <b>${escapeHtml(best.orgName)} ${escapeHtml(best.counterName)}</b>의 대기 인원이 <b>${best.waitingCount}명</b>으로 가장 신속한 업무 처리가 가능합니다. (위치: ${escapeHtml(best.location)})</span>`;
-          }
-
-          container.innerHTML = data.counters.map(c => {
-            const isCrowded = c.isCrowded;
-            const isFree = !isCrowded && c.waitingCount <= 3;
-            const tileClass = isCrowded ? 'crowded' : (isFree ? 'free' : '');
-            const badgeBg = isCrowded ? 'var(--gov-red-light)' : (isFree ? 'var(--gov-green-light)' : 'var(--gov-amber-light)');
-            const badgeColor = isCrowded ? 'var(--gov-red)' : (isFree ? 'var(--gov-green)' : 'var(--gov-amber)');
-            const statusText = isCrowded ? '혼잡 (대기 지연)' : (isFree ? '원활 (즉시 처리)' : '보통');
-
-            return `
-              <div class="counter-tile ${tileClass}">
-                <div>
-                  <div class="tile-header-sub">${escapeHtml(c.orgName)} · ${escapeHtml(c.deptName)}</div>
-                  <div class="tile-title">${escapeHtml(c.counterName)}</div>
-                </div>
-                <div class="tile-stat-box">
-                  <div>
-                    <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">현재 호출번호</div>
-                    <div class="tile-stat-num">${c.currentCallingNo}번</div>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">대기 민원인</div>
-                    <div class="tile-stat-num" style="color: ${isCrowded ? 'var(--gov-red)' : 'var(--gov-navy)'};">${c.waitingCount}명</div>
-                  </div>
-                </div>
-                <div class="tile-footer">
-                  <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 3px 9px; border-radius: var(--radius-xs); font-size: 0.76rem; font-weight: 800;">
-                    ${statusText}
-                  </span>
-                  <span>📍 ${escapeHtml(c.location)}</span>
-                </div>
-              </div>
-            `;
-          }).join('');
-        } catch (err) {
-          container.innerHTML = `<div class="empty-state"><span class="empty-symbol">☁</span><h3>창구 현황을 불러오지 못했어요</h3><p>${escapeHtml(err.message)}</p><button class="btn-secondary" onclick="loadCounters()">다시 불러오기</button></div>`;
-        }
+          await portalAuth.ready;
+          const data=await portalAuth.api('/api/counters'+(portalAuth.user?'?mine=1':''));
+          banner.textContent='이 서비스의 번호표 발급·호출 기록입니다. 실제 행정기관의 외부 대기 시스템은 연결되지 않았습니다. 30초마다 새로 확인해요.';
+          container.innerHTML=data.counters.map(c=>{
+            const ticket=data.tickets.find(t=>t.counter_id===c.id);
+            const stale=Date.now()-new Date(c.updatedAt).getTime()>3600000;
+            return `<article class="counter-tile"><div class="tile-header-sub">${escapeHtml(c.orgName)}</div><h3 class="tile-title">${escapeHtml(c.counterName)}</h3><div class="tile-stat-box"><div><div>현재 호출번호</div><div class="tile-stat-num">${c.currentCallingNo ?? '—'}번</div></div><div><div>대기 인원</div><div class="tile-stat-num">${c.waitingCount}명</div></div></div><div class="tile-footer"><span>${c.isOpen?'운영 중':'운영 중지'}</span><span>${escapeHtml(c.location)}</span></div><div class="counter-ticket">${ticket?`내 번호표 <b>${ticket.ticket_no}번</b> · ${escapeHtml(ticket.status)}`:`<button class="btn-primary" data-issue-ticket="${c.id}" ${c.isOpen?'':'disabled'}>${portalAuth.user?'번호표 발급받기':'로그인하고 번호표 받기'}</button>`}</div><p class="counter-update">마지막 변경 ${escapeHtml(new Date(c.updatedAt).toLocaleString('ko-KR'))}${stale?' · 최근 1시간 동안 변경 없음':''}</p></article>`;
+          }).join('') || '<div class="empty-state"><h3>등록된 창구가 없어요</h3><p>관리자가 실제 운영할 창구를 등록하면 대기 현황이 표시됩니다.<br>등록 전에는 대기 인원을 표시하지 않습니다.</p></div>';
+        } catch(error) {
+          container.innerHTML=`<div class="empty-state"><h3>창구 현황을 불러오지 못했어요</h3><p>${escapeHtml(error.message)}</p><button class="btn-secondary" onclick="loadCounters()">다시 불러오기</button></div>`;
+        } finally {counterLoading=false;}
       }
+      document.getElementById('counterList').addEventListener('click',async event=>{
+        const button=event.target.closest('[data-issue-ticket]'); if(!button)return;
+        if(!portalAuth.user){location.href=portalAuth.loginUrl('/?tab=counters');return;}
+        button.disabled=true;
+        try { const data=await portalAuth.api('/api/counters',{method:'POST',body:JSON.stringify({action:'ticket',counterId:button.dataset.issueTicket})});alert('내 번호표는 '+data.ticket.ticket_no+'번입니다.');await loadCounters(); }
+        catch(error){alert(error.message);button.disabled=false;}
+      });
+      setInterval(()=>{if(!document.hidden&&document.getElementById('tab-counters').classList.contains('active'))loadCounters();},30000);
 
       // 민원 처리 조회 (공식 민원처리결과서 테이블 양식)
       function quickLookup(no) {
@@ -364,6 +347,8 @@
       }
 
       async function lookupComplaint() {
+        await portalAuth.ready;
+        if(!portalAuth.user){location.href=portalAuth.loginUrl('/?tab=lookup');return;}
         const no = document.getElementById('lookupInput').value.trim();
         const resBox = document.getElementById('lookupResult');
         if (!no) {
@@ -378,7 +363,7 @@
           const res = await fetch(`/api/lookup?no=${encodeURIComponent(no)}`);
           const data = await res.json();
           if (!data.ok) {
-            resBox.innerHTML = `<div style="padding: 18px; background: var(--gov-red-light); border: 1px solid var(--gov-red-border); color: var(--gov-red); font-size: 0.88rem; text-align: center; font-weight: 700;">${data.message || '일치하는 접수 내역이 없습니다.'}</div>`;
+            resBox.innerHTML = `<div style="padding: 18px; background: var(--gov-red-light); border: 1px solid var(--gov-red-border); color: var(--gov-red); font-size: 0.88rem; text-align: center; font-weight: 700;">${escapeHtml(data.message || '일치하는 접수 내역이 없습니다.')}</div>`;
             return;
           }
 
@@ -400,8 +385,8 @@
                 <tr>
                   <th>담당 주무관</th>
                   <td><b>${escapeHtml(c.officerName)}</b></td>
-                  <th>법정 처리기한</th>
-                  <td style="font-family: var(--font-mono); font-weight: 700;">${escapeHtml(c.dueDate)}</td>
+                  <th>처리 예정일</th>
+                  <td style="font-family: var(--font-mono); font-weight: 700;">${escapeHtml(c.dueDate || '담당자 확인 중')}</td>
                 </tr>
                 <tr>
                   <th>검토 및 안내사항</th>
@@ -414,41 +399,6 @@
           `;
         } catch (err) {
           resBox.innerHTML = `<div style="color: var(--gov-red); font-size: 0.88rem;">조회 오류: ${err.message}</div>`;
-        }
-      }
-
-      // 통계 및 로그 로더
-      async function loadStats() {
-        try {
-          const res = await fetch('/api/stats');
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.message || '운영 현황을 불러오지 못했어요.');
-
-          document.getElementById('statTotal').textContent = data.summary.totalInquiries + '건';
-          document.getElementById('statResolved').textContent = data.summary.selfResolved + '건';
-          document.getElementById('statTransferred').textContent = data.summary.transferred + '건';
-          document.getElementById('statRate').textContent = data.summary.resolveRate;
-
-
-          const tbody = document.getElementById('sessionLogs');
-          tbody.innerHTML = (data.recentSessions || []).map(s => {
-            const isResolved = s.status === '자체완결';
-            return `
-              <tr>
-                <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${new Date(s.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</td>
-                <td style="max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;">${escapeHtml(s.query)}</td>
-                <td style="font-family: var(--font-mono); font-weight: 700; color: ${isResolved ? 'var(--gov-green)' : 'var(--gov-red)'};">${s.confidence_score}%</td>
-                <td>
-                  <span style="display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); font-size: 0.76rem; font-weight: 800; background: ${isResolved ? 'var(--gov-green-light)' : 'var(--gov-red-light)'}; color: ${isResolved ? 'var(--gov-green)' : 'var(--gov-red)'}; border: 1px solid ${isResolved ? 'var(--gov-green-border)' : 'var(--gov-red-border)'};">
-                    ${escapeHtml(s.status)}
-                  </span>
-                </td>
-                <td style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">${escapeHtml(s.channel)}</td>
-              </tr>
-            `;
-          }).join('') || '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">상담 기록이 없습니다.</td></tr>';
-        } catch (err) {
-          document.getElementById('sessionLogs').innerHTML = '<tr><td colspan="5" class="table-empty">운영 현황을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</td></tr>';
         }
       }
 
@@ -473,7 +423,12 @@
 
       // 초기 통계 및 연동 상태 로드
       checkSystemStatus();
-      loadStats();
+      portalAuth.ready.then(user=>{
+        document.getElementById('lookupAuthGate').hidden=Boolean(user);
+        document.getElementById('lookupMemberSearch').hidden=!user;
+        const tab=new URLSearchParams(location.search).get('tab');
+        if(['chat','counters','lookup'].includes(tab))selectTab(tab);
+      });
 
     </script>
   </body>

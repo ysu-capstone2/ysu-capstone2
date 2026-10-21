@@ -27,7 +27,7 @@ export function createChatHandler({ service = createPortalChatService(), request
         const secure = req.headers?.['x-forwarded-proto'] === 'https' || req.socket?.encrypted;
         res.setHeader('Set-Cookie', `minwon_session=${sessionId}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure ? '; Secure' : ''}`);
       }
-      const citizenId = typeof body.citizenId === 'string' && body.citizenId.length <= 100 ? body.citizenId : 'CITIZEN-GUEST';
+      const citizenId = 'CITIZEN-GUEST'; // Client supplied identities never grant access to records.
       const result = await service.answer({ message, sessionId: `${sessionId}:${citizenId}` });
       let recordId = null;
       try {

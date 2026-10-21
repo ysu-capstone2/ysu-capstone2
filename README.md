@@ -2,7 +2,7 @@
 
 기존 행복구청 민원 포털(`/`)의 UI·예약·조회·통계 기능과 전국 공통 민원 길잡이(`/guide.html`)를 함께 제공합니다. 원격 `hong` 및 `main`의 변경을 통합했습니다.
 
-민원 길잡이는 전국 공통 민원 안내 챗봇입니다. FAQ → 저장된 답변 → Gemini 순서로 답변하여 새 AI 호출을 줄입니다. 민원 길잡이 자체는 실제 민원 접수나 개인 처리 상태 조회를 수행하지 않습니다. 기존 포털의 상담 예약·내역 조회는 별도의 Supabase API로 유지됩니다.
+민원 길잡이는 전국 공통 민원 안내 챗봇입니다. FAQ → 저장된 답변 → Gemini 순서로 답변하여 새 AI 호출을 줄입니다. 민원 길잡이 자체는 실제 민원 접수나 개인 처리 상태 조회를 수행하지 않습니다. 포털의 접수·조회·번호표와 관리자 운영 현황은 Supabase Auth 및 PostgreSQL에 연결됩니다.
 
 ## 실행
 
@@ -12,7 +12,7 @@ Node.js 22 이상, 별도 패키지 설치 불필요.
 2. `GEMINI_API_KEY`에 본인의 Gemini API 키를 설정합니다. 키를 브라우저 코드나 Git에 넣지 마세요.
 3. `npm run dev` 실행 후 포털 <http://localhost:3000> 또는 민원 길잡이 <http://localhost:3000/guide.html>에 접속합니다.
 
-포털의 지식베이스·예약·조회·통계에는 `SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`(또는 `SUPABASE_SECRET_KEY`) 및 기존 서비스 테이블이 필요합니다. FAQ는 Supabase 없이도 응답하며, 대화 기록 저장 실패가 기본 안내를 차단하지 않습니다.
+회원 인증에는 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`가 필요합니다. 대화 기록과 번호표 처리에는 서버 전용 `SUPABASE_SERVICE_ROLE_KEY`(또는 `SUPABASE_SECRET_KEY`)도 설정합니다. FAQ는 Supabase 없이도 응답하며, 대화 기록 저장 실패가 기본 안내를 차단하지 않습니다.
 
 키가 없어도 FAQ 7개는 정상 동작합니다. FAQ에 없는 질문은 키 설정 안내를 반환합니다. Gemini 실연동은 키 설정 후 확인해야 합니다.
 
@@ -47,3 +47,54 @@ Node.js 22 이상, 별도 패키지 설치 불필요.
 - [Gemini 모델별 사용 요금 및 무료 구간](https://ai.google.dev/gemini-api/docs/pricing)
 
 FAQ는 2026-10-21에 공식 창구를 참고해 작성한 일반 안내입니다. 링크는 공식 확인 창구이며 AI가 실시간으로 해당 페이지를 조회했다는 의미는 아닙니다.
+
+
+## 회원·관리자 설정
+
+1. [Supabase 프로젝트](https://supabase.com/dashboard)에서 프로젝트를 엽니다.
+2. Connect 또는 Settings → API Keys에서 프로젝트 URL과 공개용 키를 확인합니다. 다음 항목을 프로젝트 루트 `.env.local`에 저장합니다.
+
+   ```dotenv
+   SUPABASE_URL=https://프로젝트참조.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=공개용키
+   SUPABASE_SERVICE_ROLE_KEY=서버전용키
+   ```
+
+   공개용 키에는 publishable 또는 기존 anon 키를 사용합니다. service_role/secret 키는 공개용 항목이나 브라우저 코드에 넣지 않습니다. `.env.local`은 Git에서 제외됩니다.
+
+3. 새 프로젝트에서는 `supabase/migrations/`의 SQL을 파일명 순서대로 SQL Editor에서 실행하거나, CLI로 프로젝트를 연결하고 `supabase db push`로 적용합니다. 현재 연결한 프로젝트에는 적용과 이력 기록을 완료했습니다.
+4. Authentication → URL Configuration의 Site URL을 로컬에서는 `http://localhost:3000/login.html`, 배포에서는 실제 배포 주소의 `/login.html`로 설정합니다. 기본 인증 메일을 이용하며, 이메일 확인 후 이메일·비밀번호로 로그인합니다. 프로젝트의 이메일 인증 설정은 앱에서 임의로 끄지 않습니다.
+5. 일반 사용자에게 인증 메일을 보내려면 Authentication → Email의 SMTP 설정을 확인합니다. Supabase 기본 SMTP는 허용된 수신자와 발송량이 제한됩니다. [공식 SMTP 안내](https://supabase.com/docs/guides/auth/auth-smtp)를 참고하세요. 확인 메일이 도착하는 전체 흐름은 본인 이메일로 별도 검증해야 합니다.
+6. 서버를 재시작합니다: `npm run dev`.
+
+- `/signup.html`: 이메일 회원가입. 이메일 인증이 필요한 경우 인증 안내 후 로그인합니다.
+- `/login.html`: 이메일·비밀번호 로그인. 서버가 검증한 세션만 사용하고 토큰은 HttpOnly 쿠키에 저장합니다.
+- `/mypage.html`: 이름·연락처 수정, 본인 접수 최근 100건, 내 활성 번호표.
+- `/admin.html`: 관리자만 접수 집계·최근 100건·처리 상태 변경·창구 등록·다음 번호 호출·상담 기록을 확인합니다.
+- 관리자는 서버가 확인한 `app_metadata.role=admin`으로만 판별합니다. 회원가입이나 내 정보 수정으로 권한을 올릴 수 없습니다.
+- 접수 생성·읽기는 사용자 JWT와 DB의 RLS 정책을 함께 적용합니다. 상태 변경은 관리자만 가능합니다.
+- 접수 시 자동 알림톡 발송이나 법정 처리기한 확정을 하지 않습니다. 실제 행정기관에 제출되는 서비스가 아닙니다.
+
+관리자 계정 생성(이메일을 보내지 않고 인증된 관리자 계정을 만듭니다):
+
+```sh
+node --env-file=.env.local scripts/create-admin.mjs admin@example.com
+```
+
+새 비밀번호는 자동 생성되며 `.local/admin-account.txt`와 `.local/admin-account.json`에만 저장됩니다. 폴더는 Git에서 제외되며 파일 권한은 소유자 읽기·쓰기로 제한됩니다. 같은 이메일이 이미 있으면 기존 계정이나 비밀번호를 변경하지 않습니다.
+
+## 창구 대기 데이터
+
+초기 창구·대기 인원은 넣지 않습니다. 관리자 페이지에서 운영할 창구를 등록하고, 로그인한 회원이 번호표를 발급받으면 대기 인원이 증가합니다. 관리자가 ‘다음 번호 호출’을 누르면 먼저 발급된 번호를 호출하고 대기 인원을 줄입니다. 번호표 발급과 호출은 DB 트랜잭션에서 처리하며, 동일 사용자·창구의 중복 대기 번호표는 생성하지 않습니다.
+
+일반 화면은 30초마다 DB를 다시 조회하고 마지막 변경 시각을 표시합니다. DB 오류 시 숫자를 대체하지 않고 오류를 표시합니다. **이 서비스에서 발급·호출한 기록이며, 실제 구청·정부24의 외부 대기 시스템과는 연결되지 않았습니다.** 현재 등록 창구가 없으면 빈 상태를 표시합니다.
+
+## 인증·대기열 검증
+
+```sh
+npm test
+# 별도 로컬 서버와 .local의 관리자/테스트 계정이 있을 때만 실행
+npm run test:live
+```
+
+실제 연동 검증은 로그인, 사용자 간 접수 격리, 직접 Data API RLS 차단, 관리자 집계·상태 변경, 동시 번호표 발급, 호출 후 대기 인원, 프로필 권한 위조 차단, 토큰 갱신·로그아웃을 확인합니다. 테스트가 만든 접수·창구·번호표·임시 계정만 정리하며, 제공된 로그인 테스트 계정은 유지합니다. 회원가입의 메일 전달·수신은 이 자동 검사에 포함하지 않습니다.

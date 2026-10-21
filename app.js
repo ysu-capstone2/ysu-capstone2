@@ -9,15 +9,14 @@ let history = [];
 let busy = false;
 let saved = 0;
 let generated = 0;
-const labels = { faq: '기본 안내 · AI 호출 없음', cache: '저장된 답변 · AI 호출 없음', gemini: 'Gemini 답변' };
 
 function appendMessage(role, text, result) {
   const article = document.createElement('article'); article.className = `message ${role}`;
   const name = document.createElement('div'); name.className = 'message-name'; name.textContent = role === 'user' ? '나' : '민원 길잡이';
   const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
   article.append(name, bubble);
-  if (result?.source) {
-    const badge = document.createElement('div'); badge.className = `badge ${result.source}`; badge.textContent = labels[result.source]; article.append(badge);
+  if (result?.source === 'gemini') {
+    const badge = document.createElement('div'); badge.className = 'badge gemini'; badge.textContent = 'AI 참고 안내'; article.append(badge);
   }
   if (result?.sources?.length) {
     const refs = document.createElement('div'); refs.className = 'references';
@@ -74,7 +73,7 @@ form.addEventListener('submit', async (event) => {
     if (result.savedCall) saved++; else generated++;
     document.querySelector('#saved-count').textContent = `${saved}회`;
     document.querySelector('#ai-count').textContent = `${generated}회`;
-    status.textContent = result.source === 'gemini' ? 'AI 안내의 세부 내용은 공식 창구에서 확인해 주세요.' : 'AI를 새로 호출하지 않고 답변했어요.';
+    status.textContent = result.source === 'gemini' ? 'AI 안내의 세부 내용은 공식 창구에서 확인해 주세요.' : '';
   } catch (error) {
     thinking.remove(); appendMessage('error', error.name === 'TimeoutError' ? '답변 시간이 초과됐어요. 잠시 후 다시 질문해 주세요.' : error.message);
     input.value = message; input.dispatchEvent(new Event('input')); status.textContent = '질문을 다시 보내거나 자주 묻는 질문을 이용해 주세요.';
