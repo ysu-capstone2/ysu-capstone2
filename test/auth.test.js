@@ -74,3 +74,44 @@ test('an auth outage does not silently discard a valid session',async()=>{
 test('empty counter DB returns no fabricated waiting counts or recommendations',async()=>{
  const result=await run(counters,req('GET',undefined,false),()=>response(200,[]));assert.equal(result.code,200);assert.deepEqual(result.body.counters,[]);assert.deepEqual(result.body.recommended,[]);
 });
+
+test('confirmation callback returns to the portal and ignores a user-supplied redirect',async()=>{
+ const result=await run(auth,req('POST',{action:'signup',name:'회원',email:'test@example.com',password:'safe-password-123',redirectTo:'https://evil.example'},false),(url)=>{
+  const target=new URL(url);assert.equal(target.searchParams.get('redirect_to'),'http://localhost:3000/login.html');return response(200,user);
+ });assert.equal(result.code,200);
+});
+test('reservation retries reuse only the verified owner receipt and reject changed content',async()=>{
+ const requestId='22222222-2222-4222-8222-222222222222';
+ const input={citizenName:'회원',citizenTel:'010-1234-5678',summary:'같은 접수',consultType:'전화상담',deptCode:'D01',requestId};
+ let payload;
+ const mock=(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  if(options.method==='POST'){payload=JSON.parse(options.body);assert.match(options.headers.Prefer,/ignore-duplicates/);return response(200,[]);}
+  assert.ok(url.includes(`user_id=eq.${user.id}`));return response(200,[{...payload,complaint_no:'YSU-existing',id:'receipt'}]);
+ };
+ const replay=await run(reserve,req('POST',input),mock);assert.equal(replay.code,200);assert.equal(replay.body.replayed,true);assert.equal(replay.body.complaintNo,'YSU-existing');
+ const changed=await run(reserve,req('POST',input),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  if(options.method==='POST')return response(200,[]);
+  return response(200,[{...payload,summary:'이전에 접수한 다른 내용'}]);
+ });assert.equal(changed.code,409);
+});
+test('cancellation checks ownership before any privileged queue operation',async()=>{
+ const result=await run(counters,req('POST',{action:'cancel',ticketId:'22222222-2222-4222-8222-222222222222',user_id:'spoofed'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  assert.ok(url.includes(`user_id=eq.${user.id}`));assert.ok(!url.includes('spoofed'));assert.equal(options.method,undefined);return response(200,[]);
+ });assert.equal(result.code,404);
+});
+
+test('email confirmation resend keeps the portal callback and does not create a session',async()=>{
+ const result=await run(auth,req('POST',{action:'resend',email:'member@example.com'},false),(url,options)=>{
+  assert.equal(new URL(url).pathname,'/auth/v1/resend');assert.equal(new URL(url).searchParams.get('redirect_to'),'http://localhost:3000/login.html');
+  assert.deepEqual(JSON.parse(options.body),{type:'signup',email:'member@example.com'});return response(200,{});
+ });assert.equal(result.code,200);assert.equal(result.body.retryAfter,60);assert.equal(result.headers['Set-Cookie'],undefined);
+});
+test('resend validation and provider cooldown are preserved without retrying',async()=>{
+ assert.equal((await run(auth,req('POST',{action:'resend',email:'invalid'},false))).code,400);
+ let calls=0;
+ const result=await run(auth,req('POST',{action:'resend',email:'member@example.com'},false),()=>{calls++;return new Response(JSON.stringify({error_code:'over_email_send_rate_limit'}),{status:429,headers:{'Retry-After':'120'}});});
+ assert.equal(result.code,429);assert.equal(calls,1);assert.equal(result.headers['Retry-After'],'120');
+});

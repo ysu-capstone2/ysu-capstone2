@@ -238,3 +238,6 @@ documents/
 
 # Local administrator bootstrap credentials
 .local/
+
+# Generated public assets
+/public/

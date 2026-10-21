@@ -10,6 +10,7 @@ import reserve from '../api/reserve.js';
 import stats from '../api/stats.js';
 import auth from '../api/auth.js';
 import admin from '../api/admin.js';
+import adminPage from '../api/admin-page.js';
 
 const root = new URL('../', import.meta.url);
 const assets = new Map([
@@ -19,11 +20,11 @@ const assets = new Map([
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/portal.css', ['portal.css', 'text/css; charset=utf-8']],
-  ...['login.html','signup.html','mypage.html','admin.html'].map(file => ['/'+file,[file,'text/html; charset=utf-8']]),
+  ...['login.html','signup.html','mypage.html'].map(file => ['/'+file,[file,'text/html; charset=utf-8']]),
   ['/account.js',['account.js','text/javascript; charset=utf-8']],
   ['/account.css',['account.css','text/css; charset=utf-8']],
 ]);
-const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats], ['/api/auth', auth], ['/api/admin', admin]]);
+const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats], ['/api/auth', auth], ['/api/admin', admin], ['/admin.html', adminPage], ['/admin', adminPage], ['/api/admin-page', adminPage]]);
 
 http.createServer(async (req, res) => {
   res.status = (code) => { res.statusCode = code; return res; };

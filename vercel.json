@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/admin.html", "destination": "/api/admin-page" },
+    { "source": "/admin", "destination": "/api/admin-page" }
+  ],
+  "functions": {
+    "api/admin-page.js": { "includeFiles": "admin.html" }
+  }
+}

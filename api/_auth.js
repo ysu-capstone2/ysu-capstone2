@@ -6,7 +6,7 @@ export class ApiError extends Error {
 }
 export function config() {
   const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '');
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) throw new ApiError(503, 'Supabase 연결 설정이 필요합니다.');
   return { url, key };
 }
@@ -19,7 +19,10 @@ export async function authRequest(path, { token, ...options } = {}) {
   if (!response.ok) {
     const code = data.code || data.error_code;
     const messages = { invalid_credentials: '이메일 또는 비밀번호를 확인해 주세요.', email_not_confirmed: '이메일 인증을 완료한 뒤 로그인해 주세요.', user_already_exists: '이미 가입한 이메일입니다.', weak_password: '더 강한 비밀번호를 입력해 주세요.', email_address_invalid: '올바른 이메일 주소를 입력해 주세요.', email_address_not_authorized: '이 프로젝트의 이메일 발송 설정을 확인해야 합니다. 관리자에게 문의해 주세요.', over_email_send_rate_limit: '인증 메일 요청이 많습니다. 잠시 후 다시 시도해 주세요.' };
-    throw new ApiError(response.status === 429 ? 429 : response.status >= 500 ? 503 : 400, messages[code] || '인증 요청을 처리하지 못했어요. 입력 정보와 이메일 인증 여부를 확인해 주세요.');
+    const error = new ApiError(response.status === 429 ? 429 : response.status >= 500 ? 503 : 400, messages[code] || '인증 요청을 처리하지 못했어요. 입력 정보와 이메일 인증 여부를 확인해 주세요.');
+    error.code=code;
+    if(response.status===429) error.retryAfter=Math.min(86400,Math.max(60,Number(response.headers?.get('Retry-After'))||60));
+    throw error;
   }
   return data;
 }
@@ -98,7 +101,8 @@ export async function jsonBody(req) {
   return body;
 }
 export function fail(res, error) {
-  return res.status(error.status || (error instanceof SyntaxError ? 400 : 500)).json({ ok: false, message: error.status || error instanceof SyntaxError ? (error instanceof SyntaxError ? '입력 형식을 확인해 주세요.' : error.message) : '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.' });
+  if (error.retryAfter) res.setHeader('Retry-After',String(error.retryAfter));
+  return res.status(error.status || (error instanceof SyntaxError ? 400 : 500)).json({ ok: false, ...(error.code ? {code:error.code} : {}), message: error.status || error instanceof SyntaxError ? (error instanceof SyntaxError ? '입력 형식을 확인해 주세요.' : error.message) : '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.' });
 }
 export async function userData(token, endpoint, options = {}) {
   const { url, key } = config();
