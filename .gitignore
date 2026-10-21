@@ -226,3 +226,9 @@ __marimo__/
 !/lib/
 /lib/*
 !/lib/chat-service.js
+
+.vercel
+.env*
+!.env.example
+documents/
+.DS_Store
