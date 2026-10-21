@@ -1,4 +1,4 @@
-export const FAQ_VERSION = '2026-10-21-v1';
+export const FAQ_VERSION = '2026-10-21-v2';
 
 const epeople = { title: '국민신문고 민원 안내', url: 'https://www.epeople.go.kr/nep/pttn/pttnOnln/pttnOnlnContent.npaid' };
 const gov = { title: '정부24', url: 'https://www.gov.kr/' };
@@ -49,11 +49,27 @@ export const faqs = [
   },
 ];
 
-// Only curated, complete questions match. Broad keyword matches can answer
-// a different intent (for example, cancellation versus submission).
+// Exact questions take precedence. Supported conversational intents require both
+// a concrete subject and a problem, and reject unrelated or conflicting requests.
 export function normalizeQuestion(value) {
   return value.normalize('NFKC').toLowerCase().trim().replace(/[?？!！。~]+$/gu, '').replace(/\s+/gu, ' ').trim();
 }
 
 const faqIndex = new Map(faqs.flatMap((faq) => [faq.question, ...faq.aliases].map((question) => [normalizeQuestion(question), faq])));
-export function findFaq(question) { return faqIndex.get(normalizeQuestion(question)); }
+export function findFaq(question) {
+  const normalized = normalizeQuestion(question);
+  const exact = faqIndex.get(normalized);
+  if (exact) return exact;
+  // Whitespace and common spelling variants do not change road-damage intent.
+  const text = normalized.replace(/\s+/gu, '').replace(/포트[호힐]/gu, '포트홀');
+  if (text.length > 160) return undefined;
+  const differentIntent = /취소|철회|정정|수정|삭제|취하|변경|조회|내역|통계|현황|보상|배상|보험|사고|부상|다쳤|출동|긴급|공사|일정|예산|소음|쓰레기|불법주차|가로등|신호등|여권|전입|등본|세금|과태료|그리고|동시에|말고|아니|아닌|않|안파|없어|없는데|없음|없습|뜻|의미|원인|왜|영어|번역|프롬프트|무시|지시|처리(?:상태|결과|기간)/u;
+  if (differentIntent.test(text)) return undefined;
+  const road = /도로|차도|인도|보도|골목길|보행로|아스팔트|노면|길바닥|길에|길이/u.test(text);
+  const damage = /파손|파였|파여|패였|패여|패인|파인|깨졌|깨져|구멍|움푹|꺼졌|꺼져|갈라졌|균열/u.test(text);
+  const pothole = /포트홀|pothole/u.test(text);
+  if ((road && damage) || (pothole && /신고|어디|어떻게|발견|있어|있네|있습|생겼|생겨|났어|위험|보여|접수/u.test(text))) {
+    return faqs.find(faq => faq.id === 'safety');
+  }
+  return undefined;
+}

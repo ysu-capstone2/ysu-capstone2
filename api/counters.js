@@ -25,6 +25,15 @@ export default async function handler(req, res) {
       const ticket = await supabaseRequest('rpc/portal_join_queue',{method:'POST',body:JSON.stringify({p_counter:body.counterId,p_user:current.user.id})});
       return res.status(200).json({ok:true,ticket});
     }
+    if (req.method === 'POST' && body.action === 'cancel') {
+      const current = await session(req,res);
+      if (typeof body.ticketId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.ticketId)) throw new ApiError(400,'번호표를 확인해 주세요.');
+      const rows = await userData(current.token, `queue_tickets?id=eq.${body.ticketId}&user_id=eq.${encodeURIComponent(current.user.id)}&select=id,status`);
+      if (!rows.length) throw new ApiError(404,'본인 명의의 번호표를 찾지 못했어요.');
+      const result = await supabaseRequest('rpc/portal_cancel_ticket',{method:'POST',body:JSON.stringify({p_ticket:body.ticketId,p_user:current.user.id})});
+      if (!result.cancelled) throw new ApiError(result.reason === 'not_found' ? 404 : 409,'이미 호출되었거나 종료된 번호표는 취소할 수 없어요.');
+      return res.status(200).json({ok:true});
+    }
     await adminSession(req,res);
     if (req.method === 'POST' && body.action === 'create') {
       const org = String(body.orgName || '').trim(), name = String(body.counterName || '').trim(), location = String(body.location || '').trim();

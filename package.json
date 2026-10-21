@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "test": "node --test",
-    "test:live": "node --env-file=.env.local scripts/check-live.mjs"
+    "test:live": "node --env-file=.env.local scripts/check-live.mjs",
+    "build": "node scripts/build.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

@@ -3,11 +3,18 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   const date = value => value ? new Date(value).toLocaleString('ko-KR') : '미정';
   const badge = value => `<span class="status-badge ${value === '완료' ? 'done' : ''}">${esc(value)}</span>`;
-  function message(text, error = false) { const el = $('accountMessage'); if (el) { el.textContent = text; el.classList.toggle('error',error); } }
+  function message(text, error = false) {
+    let el = $('accountMessage');
+    if (!el) { el=document.createElement('div'); el.id='accountMessage'; el.className='account-message container'; el.setAttribute('role','status'); document.querySelector('main')?.prepend(el); }
+    el.textContent=text; el.classList.toggle('error',error);
+  }
   async function api(path, options = {}) {
-    const response = await fetch(path, {...options, headers:{'Content-Type':'application/json',...options.headers},cache:'no-store'});
-    const data = await response.json();
-    if (!response.ok || !data.ok) { const e = new Error(data.message || '요청을 처리하지 못했어요.'); e.status=response.status; throw e; }
+    let response;
+    try { response = await fetch(path, {...options, headers:{'Content-Type':'application/json',...options.headers},cache:'no-store',signal:options.signal || AbortSignal.timeout(15000)}); }
+    catch { throw new Error('연결을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+    let data;
+    try { data=await response.json(); } catch { throw new Error('서버 응답을 읽지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+    if (!response.ok || !data.ok) { const e = new Error(data.message || '요청을 처리하지 못했어요.'); e.status=response.status; e.code=data.code; e.retryAfter=Number(response.headers?.get('Retry-After'))||0; throw e; }
     return data;
   }
   function safeNext() {
@@ -16,11 +23,14 @@
     try { const url = new URL(input,location.origin); return url.origin===location.origin && !['/login.html','/signup.html'].includes(url.pathname) ? url.pathname+url.search+url.hash : null; } catch { return null; }
   }
   function loginUrl(next = location.pathname+location.search) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
-  const auth = window.portalAuth = { user:null, ready:null, api, loginUrl };
+  const auth = window.portalAuth = { user:null, ready:null, error:null, api, loginUrl, notify:message };
   function renderNav() {
+    document.querySelectorAll('[data-admin-only]').forEach(el=>{el.hidden=!auth.user?.isAdmin;});
+    document.querySelectorAll('[data-member-only]').forEach(el=>{el.hidden=Boolean(auth.user?.isAdmin);});
     const el = $('accountNav'); if (!el) return;
+    if (auth.error) { el.innerHTML='<button type="button" id="retryAuthNav">계정 연결 다시 확인</button>'; $('retryAuthNav').addEventListener('click',()=>location.reload()); return; }
     el.innerHTML = auth.user
-      ? `<a href="/mypage.html">마이페이지</a>${auth.user.isAdmin ? '<a href="/admin.html">관리자</a>' : ''}<button type="button" id="logoutButton">로그아웃</button>`
+      ? `<a href="${auth.user.isAdmin ? '/admin.html' : '/mypage.html'}">${auth.user.isAdmin ? '운영 관리' : '마이페이지'}</a><button type="button" id="logoutButton">로그아웃</button>`
       : `<a href="${esc(loginUrl())}">로그인</a><a href="/signup.html">회원가입</a>`;
     $('logoutButton')?.addEventListener('click', async event => {
       event.target.disabled=true;
@@ -28,21 +38,36 @@
       catch(error) { message(error.message,true); alert(error.message); event.target.disabled=false; }
     });
   }
-  auth.ready = api('/api/auth').then(data => { auth.user=data.user; renderNav(); return data.user; }).catch(error => { renderNav(); message(error.message,true); return null; });
+  auth.ready = api('/api/auth').then(data => { auth.user=data.user; renderNav(); return data.user; }).catch(error => { auth.error=error; renderNav(); message(error.message,true); return null; });
   async function protectedPage(admin = false) {
     await auth.ready;
+    if (auth.error) {
+      message('계정 연결을 확인하지 못했어요. 입력 정보는 유지됩니다. 새로고침해 다시 확인해 주세요.',true);
+      const button=document.createElement('button'); button.className='btn-secondary'; button.textContent='다시 확인'; button.addEventListener('click',()=>location.reload()); $('accountMessage')?.append(document.createElement('br'),button);
+      return false;
+    }
     if (!auth.user) { location.replace(loginUrl()); return false; }
+    if (!admin && auth.user.isAdmin) { location.replace('/admin.html'); return false; }
     if (admin && !auth.user.isAdmin) { message('관리자만 이용할 수 있는 페이지입니다.',true); return false; }
     return true;
   }
+  auth.requireUser = async (nextPage) => {
+    await auth.ready;
+    if (auth.error) { message(auth.error.message,true); return false; }
+    if (!auth.user) { location.href=loginUrl(nextPage); return false; }
+    if (auth.user.isAdmin) { location.href='/admin.html'; return false; }
+    return true;
+  };
   const next = safeNext();
   if ($('signupLink') && next) $('signupLink').href='/signup.html?next='+encodeURIComponent(next);
   if ($('loginLink') && next) $('loginLink').href=loginUrl(next);
   // Supabase's default confirmation email may return fragment tokens. Do not persist them in browser storage.
-  if (location.hash.includes('access_token=') || location.hash.includes('error=')) {
-    const error = new URLSearchParams(location.hash.slice(1)).get('error_description');
+  if (/access_token=|error=|error_code=/.test(location.hash)) {
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    const error = fragment.has('error') || fragment.has('error_code');
     history.replaceState(null,'',location.pathname+location.search);
-    message(error ? '이메일 인증 링크가 만료되었거나 올바르지 않습니다.' : '이메일 인증을 완료했어요. 이메일과 비밀번호로 로그인해 주세요.',Boolean(error));
+    if(error && $('resendArea'))$('resendArea').hidden=false;
+    message(error ? '링크가 만료되었거나 이미 사용됐어요. 이미 인증했다면 로그인해 주세요. 인증하지 못했다면 새 메일을 요청하고 가장 최근 링크만 눌러 주세요.' : '이메일 인증을 완료했어요. 이메일과 비밀번호로 로그인해 주세요.',Boolean(error));
   }
   for (const action of ['login','signup']) {
     $(action+'Form')?.addEventListener('submit',async event => {
@@ -52,12 +77,28 @@
       try {
         const data=await api('/api/auth',{method:'POST',body:JSON.stringify({action,email:$('email').value,password:$('password').value,...(action==='signup'?{name:$('name').value}:{})})});
         $('password').value=''; if ($('passwordConfirm')) $('passwordConfirm').value='';
-        if (data.requiresConfirmation) { message(data.message); return; }
-        location.replace(next || (data.user.isAdmin ? '/admin.html' : '/mypage.html'));
-      } catch(error) { message(error.message,true); }
+        if (data.requiresConfirmation) { message(data.message); if($('resendArea'))$('resendArea').hidden=false; return; }
+        location.replace(data.user.isAdmin ? '/admin.html' : (next || '/mypage.html'));
+      } catch(error) { message(error.message,true); if(error.code==='email_not_confirmed' && $('resendArea'))$('resendArea').hidden=false; }
       finally { button.disabled=false; }
     });
   }
+  let resendTimer=null;
+  function cooldown(seconds) {
+    const button=$('resendEmailButton'); if(!button)return;
+    if(resendTimer)clearInterval(resendTimer);
+    const until=Date.now()+Math.max(1,seconds)*1000;
+    const update=()=>{const remaining=Math.max(0,Math.ceil((until-Date.now())/1000));button.disabled=remaining>0;button.textContent=remaining?`인증 메일 재발송 (${remaining}초 후)`:'인증 메일 다시 받기';if(!remaining){clearInterval(resendTimer);resendTimer=null;}};
+    resendTimer=setInterval(update,1000);update();
+  }
+  $('resendEmailButton')?.addEventListener('click',async event=>{
+    const email=$('email');
+    if(!email?.value.trim() || !email.checkValidity()){message('이메일 입력란에 가입한 이메일을 정확히 입력해 주세요.',true);email?.focus();return;}
+    const button=event.target;if(button.disabled)return;button.disabled=true;
+    try {const data=await api('/api/auth',{method:'POST',body:JSON.stringify({action:'resend',email:email.value})});message(data.message);cooldown(data.retryAfter||60);}
+    catch(error){message(error.message,true);if(error.status===429)cooldown(error.retryAfter||60);}
+    finally{if(!resendTimer)button.disabled=false;}
+  });
   let receipts=[];
   function receiptView(c) {
     return `<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaintNo)}</span>${badge(c.processStatus)}</div><h3>${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.deptName)} · ${esc(c.consultType)}<br>접수 ${date(c.createdAt)} · 담당자 ${esc(c.officerName)}${c.dueDate ? '<br>처리 예정일 '+esc(c.dueDate) : ''}</p><p class="receipt-result">${esc(c.result || '담당자 확인을 기다리고 있어요.')}</p></article>`;
@@ -74,7 +115,7 @@
   async function loadTickets() {
     try {
       const data=await api('/api/counters?mine=1');
-      $('myTickets').innerHTML=data.tickets.map(t=>`<article class="receipt-card"><div class="receipt-top"><h3>${esc(data.counters.find(c=>c.id===t.counter_id)?.counterName || '창구')}</h3>${badge(t.status)}</div><p class="receipt-meta">내 번호 <strong>${t.ticket_no}번</strong> · 발급 ${date(t.created_at)}</p></article>`).join('') || '<p class="account-empty">현재 대기 중인 번호표가 없어요.</p>';
+      $('myTickets').innerHTML=data.tickets.map(t=>`<article class="receipt-card"><div class="receipt-top"><h3>${esc(data.counters.find(c=>c.id===t.counter_id)?.counterName || '창구')}</h3>${badge(t.status)}</div><p class="receipt-meta">내 번호 <strong>${t.ticket_no}번</strong> · 발급 ${date(t.created_at)}</p>${t.status==='대기'?`<button type="button" class="btn-secondary" data-cancel-ticket="${t.id}">번호표 취소</button>`:''}</article>`).join('') || '<p class="account-empty">현재 대기 중인 번호표가 없어요.</p>';
     } catch(error) { $('myTickets').textContent=error.message; }
   }
   if (document.body.dataset.page==='mypage') (async()=>{
@@ -82,6 +123,13 @@
     $('memberContent').hidden=false; $('welcomeName').textContent=(auth.user.name||'회원')+'님, 반가워요';
     $('profileEmail').value=auth.user.email; $('profileName').value=auth.user.name; $('profilePhone').value=auth.user.phone;
     await Promise.all([loadReceipts(),loadTickets()]);
+    $('myTickets').addEventListener('click',async event=>{
+      const button=event.target.closest('[data-cancel-ticket]'); if(!button)return;
+      button.disabled=true;
+      try {await api('/api/counters',{method:'POST',body:JSON.stringify({action:'cancel',ticketId:button.dataset.cancelTicket})});message('대기 번호표를 취소했어요.');await loadTickets();}
+      catch(error){message(error.message,true);await loadTickets();}
+      finally{button.disabled=false;}
+    });
     $('receiptFilter').addEventListener('input',renderReceipts);
     $('refreshReceipts').addEventListener('click',()=>Promise.all([loadReceipts(),loadTickets()]));
     $('profileForm').addEventListener('submit',async event=>{
