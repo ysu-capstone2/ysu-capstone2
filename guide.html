@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <meta name="description" content="전국 공통 민원 신청 방법과 공식 확인 창구를 안내하는 민원 길잡이입니다." />
+    <title>민원 길잡이 · YSU Capstone 2</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div><div class="eyebrow">YSU CAPSTONE 2</div><h1>민원 길잡이<span class="scope">전국 공통 안내</span></h1><p class="intro">어디에, 어떻게 신청할지 막막할 때.<br />궁금한 민원 절차를 편하게 물어보세요.</p></div>
+        <button id="new-chat" class="secondary" type="button">새 대화</button>
+      </header>
+      <div class="layout">
+        <aside class="sidebar">
+          <section class="card"><div class="section-label">QUICK QUESTIONS</div><h2>자주 묻는 질문</h2><p class="hint">기본 질문은 기다림 없이 바로 안내해 드려요.</p><div id="suggestions" class="suggestions" aria-label="자주 묻는 질문"><p class="hint">질문을 불러오는 중입니다.</p></div></section>
+          <section class="card savings" aria-labelledby="savings-title"><h2 id="savings-title">이번 대화의 답변</h2><div class="stat"><span>AI 호출 없이 답변</span><strong id="saved-count">0회</strong></div><div class="stat"><span>새 AI 답변</span><strong id="ai-count">0회</strong></div><p class="hint">자주 묻는 질문과 저장된 답변을 먼저 활용해 AI 호출을 아낍니다.</p></section>
+          <p class="sidebar-foot">실제 민원 접수와 개인 처리 상태 조회는 해당 공식 사이트에서 진행해 주세요.</p>
+        </aside>
+        <section class="chat card" aria-labelledby="chat-title">
+          <div class="chat-header"><div class="avatar" aria-hidden="true">민</div><div><h2 id="chat-title">민원 안내 도우미</h2><p id="connection" class="hint">연결 상태를 확인하고 있어요.</p></div><span class="online" aria-hidden="true"></span></div>
+          <div id="messages" class="messages" role="log" aria-label="민원 안내 대화" aria-live="polite" aria-relevant="additions"></div>
+          <div class="composer">
+            <p id="status" class="hint" role="status" aria-live="polite"></p>
+            <form id="chat-form"><label for="message" class="sr-only">민원에 관한 질문</label><div class="input-row"><textarea id="message" name="message" rows="2" maxlength="1000" required placeholder="예: 민원은 어디에 신청하나요?" aria-describedby="input-hint"></textarea><button id="send" type="submit">보내기</button></div><div class="input-foot"><span id="input-hint">Enter 전송 · Shift+Enter 줄바꿈</span><span id="length">0 / 1,000</span></div></form>
+            <p class="privacy">주민등록번호·연락처 등 개인정보는 입력하지 마세요. AI 답변의 세부 절차는 공식 창구에서 확인해 주세요.</p>
+          </div>
+        </section>
+      </div>
+      <footer>신청과 확인은 공식 창구에서 <a href="https://www.epeople.go.kr/" target="_blank" rel="noopener noreferrer">국민신문고 ↗</a><a href="https://www.gov.kr/" target="_blank" rel="noopener noreferrer">정부24 ↗</a><a href="https://www.safetyreport.go.kr/" target="_blank" rel="noopener noreferrer">안전신문고 ↗</a></footer>
+    </main>
+  </body>
+</html>

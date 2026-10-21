@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createChatService } from '../lib/chat-service.js';
 import { findFaq } from '../data/faq.js';
-import handler, { validateMessage } from '../api/chat.js';
+import handler, { validateMessage } from '../api/guide.js';
 
 const good = (text = '공식 안내 창구에서 민원 종류와 지역을 확인해 주세요.') => ({
   ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text }] } }] }),

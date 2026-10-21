@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 /**
  * .env.local에서 환경변수가 아직 로드되지 않은 경우 안전하게 읽어옵니다.
@@ -95,7 +95,7 @@ const RESPONSE_SCHEMA = {
 };
 
 /**
- * Gemini Interactions API (gemini-3.8-flash)를 호출하여
+ * Gemini GenerateContent API를 호출하여
  * 행복구청 RAG 지식베이스 기반 민원 응답을 생성합니다.
  */
 export async function generateCivilResponseWithGemini(query, knowledges = []) {
@@ -105,6 +105,7 @@ export async function generateCivilResponseWithGemini(query, knowledges = []) {
   }
 
   const model = getGeminiModel();
+  if (!/^[a-zA-Z0-9.-]+$/.test(model)) throw new Error('Invalid Gemini model');
 
   const ragContext = knowledges
     .map(
@@ -128,71 +129,25 @@ export async function generateCivilResponseWithGemini(query, knowledges = []) {
 
   const promptInput = `[행복구청 공인 행정지식베이스]\n${ragContext}\n\n[구민 질의 내용]\n${query}`;
 
-  let outputText = null;
-
-  // 1) @google/genai SDK가 설치되어 있으면 SDK의 client.interactions.create 사용
-  try {
-    const { GoogleGenAI } = await import('@google/genai');
-    const client = new GoogleGenAI({ apiKey });
-    const interaction = await client.interactions.create({
-      model,
-      system_instruction: systemInstruction,
-      input: promptInput,
-      response_format: [
-        {
-          type: 'text',
-          mime_type: 'application/json',
-          schema: RESPONSE_SCHEMA,
-        },
-      ],
-    });
-    outputText =
-      interaction.output_text ||
-      interaction.steps?.findLast((s) => s.type === 'model_output')?.content?.[0]?.text ||
-      null;
-  } catch (sdkErr) {
-    // @google/genai 미설치 환경에서는 Interactions REST API 직접 호출
-    if (sdkErr.code !== 'ERR_MODULE_NOT_FOUND') {
-      throw sdkErr;
-    }
-
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Api-Revision': '2026-05-20',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        model,
-        system_instruction: systemInstruction,
-        input: promptInput,
-        response_format: [
-          {
-            type: 'text',
-            mime_type: 'application/json',
-            schema: RESPONSE_SCHEMA,
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Gemini Interactions API error (${res.status}): ${errText}`);
-    }
-
-    const interaction = await res.json();
-    outputText =
-      interaction.output_text ||
-      interaction.steps?.findLast((s) => s.type === 'model_output')?.content?.[0]?.text ||
-      null;
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ role: 'user', parts: [{ text: promptInput }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 1536, responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
+    }),
+    signal: AbortSignal.timeout(25000),
+  });
+  if (!res.ok) {
+    const error = new Error('Gemini generation failed');
+    error.status = res.status;
+    throw error;
   }
-
-  if (!outputText) {
-    throw new Error('Gemini API returned an empty response');
-  }
+  const response = await res.json();
+  const candidate = response.candidates?.[0];
+  const outputText = candidate?.content?.parts?.filter((part) => !part.thought).map((part) => part.text || '').join('').trim();
+  if (!outputText || candidate.finishReason !== 'STOP') throw new Error('Gemini returned an incomplete response');
 
   const parsed = JSON.parse(outputText);
   const score = Math.max(0, Math.min(98, Number(parsed.confidenceScore) || 0));

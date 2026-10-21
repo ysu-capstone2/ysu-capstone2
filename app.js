@@ -63,7 +63,7 @@ form.addEventListener('submit', async (event) => {
   setBusy(true); status.textContent = '답변을 준비하고 있어요…';
   const thinking = appendMessage('assistant thinking', '질문을 확인하고 있어요…');
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('/api/guide', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, history: boundedHistory(message) }), signal: AbortSignal.timeout(30000),
     });
@@ -83,7 +83,7 @@ form.addEventListener('submit', async (event) => {
 welcome();
 async function initialize() {
   try {
-    const response = await fetch('/api/chat', { signal: AbortSignal.timeout(5000) });
+    const response = await fetch('/api/guide', { signal: AbortSignal.timeout(5000) });
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error('Configuration unavailable');
     document.querySelector('#connection').textContent = data.geminiConfigured ? '기본 안내 + AI 추가 답변 이용 가능' : '기본 안내 이용 가능 · AI 추가 답변 준비 중';
