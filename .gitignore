@@ -151,6 +151,9 @@ activemq-data/
 
 # Environments
 .env
+.env.local
+.env.*.local
+node_modules/
 .envrc
 .venv
 env/
@@ -218,7 +221,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# JavaScript server code (override the Python lib directory rule above).
+!/lib/
+/lib/*
+!/lib/chat-service.js
+!/lib/chat-error.js
+!/lib/gemini-budget.js
+!/lib/portal-chat.js
+
 .vercel
 .env*
+!.env.example
 documents/
 .DS_Store
