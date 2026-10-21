@@ -16,6 +16,7 @@ const assets = new Map([
   ['/guide.html', ['guide.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/portal.css', ['portal.css', 'text/css; charset=utf-8']],
 ]);
 const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats]]);
 
