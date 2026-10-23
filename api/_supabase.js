@@ -1,7 +1,6 @@
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-
 export async function supabaseRequest(endpoint, options = {}) {
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('Supabase credentials are missing');
   }
@@ -28,5 +27,5 @@ export async function supabaseRequest(endpoint, options = {}) {
     throw new Error(`Supabase API error (${response.status}): ${errorText}`);
   }
 
-  return response.json();
+  return response.status === 204 ? null : response.json();
 }

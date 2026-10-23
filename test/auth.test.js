@@ -9,6 +9,7 @@ import counters from '../api/counters.js';
 const originalFetch=globalThis.fetch;
 process.env.SUPABASE_URL='https://auth-test.supabase.co';
 process.env.SUPABASE_PUBLISHABLE_KEY='public-test-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY='service-test-key';
 const user={id:'11111111-1111-4111-8111-111111111111',email:'member@example.com',user_metadata:{name:'회원'},app_metadata:{}};
 function response(status,data={}) {return new Response(status===204?null:JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});}
 function req(method='GET',body,token=true){return {method,headers:{host:'localhost:3000',origin:'http://localhost:3000','content-type':'application/json',...(token?{cookie:'portal_access=verified-token'}:{})},query:{},body};}
@@ -114,4 +115,33 @@ test('resend validation and provider cooldown are preserved without retrying',as
  let calls=0;
  const result=await run(auth,req('POST',{action:'resend',email:'member@example.com'},false),()=>{calls++;return new Response(JSON.stringify({error_code:'over_email_send_rate_limit'}),{status:429,headers:{'Retry-After':'120'}});});
  assert.equal(result.code,429);assert.equal(calls,1);assert.equal(result.headers['Retry-After'],'120');
+});
+test('citizen can edit, submit supplement, and cancel own complaint according to process state',async()=>{
+ const receiptId='33333333-3333-4333-8333-333333333333';
+ const editRes=await run(lookup,req('PATCH',{action:'edit',id:receiptId,summary:'수정된 민원 내용',consultType:'방문상담',citizenTel:'010-9999-8888'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  if(!options.method)return response(200,[{id:receiptId,user_id:user.id,process_status:'접수',consult_type:'전화상담',citizen_tel:'010-1234-5678',summary:'기존'}]);
+  assert.equal(options.method,'PATCH');assert.equal(JSON.parse(options.body).consult_type,'방문상담');return response(200,[{}]);
+ });assert.equal(editRes.code,200);
+ const suppRes=await run(lookup,req('PATCH',{action:'supplement',id:receiptId,supplement:'건축 도면 추가 제출'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  if(!options.method)return response(200,[{id:receiptId,user_id:user.id,process_status:'보완요청',summary:'원본 질의'}]);
+  const body=JSON.parse(options.body);assert.equal(body.process_status,'처리중');assert.match(body.summary,/\[민원인 보완제출\] 건축 도면 추가 제출/);return response(200,[{}]);
+ });assert.equal(suppRes.code,200);
+ const cancelBlocked=await run(lookup,req('PATCH',{action:'cancel',id:receiptId}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  return response(200,[{id:receiptId,user_id:user.id,process_status:'완료'}]);
+ });assert.equal(cancelBlocked.code,409);
+});
+test('team leader statistics compute self-resolution rate, low-confidence keyword clusters, and department breakdown',async()=>{
+ const adminUser={...user,app_metadata:{role:'admin'}};
+ const statRes=await run(stats,req('GET'),(url)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,adminUser);
+  if(url.includes('portal_summary'))return response(200,{totalComplaints:2,pending:1,processing:1,completed:0,totalInquiries:3,waiting:0});
+  if(url.includes('citizen_complaints'))return response(200,[{dept_name:'건축과',consult_type:'전화상담',created_at:'2026-10-22T10:00:00Z',due_date:'2026-10-01',process_status:'접수'},{dept_name:'건축과',consult_type:'방문상담',created_at:'2026-10-23T10:00:00Z',due_date:'2026-10-30',process_status:'처리중'}]);
+  return response(200,[{id:1,query:'불법건축물 철거 분쟁 조정',status:'상담연계대기',confidence_score:35,created_at:'2026-10-23T14:00:00Z'},{id:2,query:'불법건축물 신고 및 일조권 분쟁',status:'상담연계대기',confidence_score:42,created_at:'2026-10-23T15:00:00Z'},{id:3,query:'주민등록등본 발급',status:'자체완결',confidence_score:94,created_at:'2026-10-23T01:00:00Z'}]);
+ });
+ assert.equal(statRes.code,200);assert.equal(statRes.body.analytics.selfResolvedCount,1);assert.equal(statRes.body.analytics.transferredCount,2);
+ assert.equal(statRes.body.analytics.overdueCount,1);assert.equal(statRes.body.analytics.byDepartment['건축과'],2);
+ assert.ok(statRes.body.analytics.lowConfidenceClusters.some(c=>c.keyword==='불법건축물'&&c.needsKnowledgeUpdate===true));
 });

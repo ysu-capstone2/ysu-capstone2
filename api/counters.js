@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       const response = await fetch(`${url}/rest/v1/service_counters?order=counter_name.asc`, { headers: { apikey: key }, signal: AbortSignal.timeout(9000) });
       if (!response.ok) throw new ApiError(503, '창구 정보를 불러오지 못했어요.');
       const rows = await response.json();
-      const counters = rows.map(c => ({ id:c.id, orgName:c.org_name, counterName:c.counter_name, deptName:'', location:c.location, currentCallingNo:c.current_calling_no, waitingCount:c.waiting_count, isCrowded:c.waiting_count>=10, isOpen:c.is_open, updatedAt:c.updated_at }));
+      const counters = rows.map(c => ({ id:c.id, orgName:c.org_name, counterName:c.counter_name, deptName:'', location:c.location, currentCallingNo:c.current_calling_no, waitingCount:c.waiting_count, estimatedWaitMinutes:c.waiting_count*5, congestionStatus:!c.is_open?'운영중지':c.waiting_count>=10?'혼잡':c.waiting_count>=5?'보통':'원활', isCrowded:c.waiting_count>=10, isOpen:c.is_open, updatedAt:c.updated_at }));
       let tickets = [];
       if (req.query?.mine === '1') {
         const current = await session(req, res);
