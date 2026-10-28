@@ -114,6 +114,7 @@
 
       let currentSessionId = null;
       const chatTurns = [];
+      const chatHistory = [];
       const draftKey = 'portal-reservation-draft';
 
       async function submitChat() {
@@ -130,7 +131,7 @@
           const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }), signal: AbortSignal.timeout(30000),
+            body: JSON.stringify({ query, history:portalGuidance.historyFor(query,chatHistory) }), signal: AbortSignal.timeout(30000),
           });
           const data = await res.json();
           removeLoading(loadingId);
@@ -139,10 +140,30 @@
             throw new Error(data.message || '답변을 받지 못했어요. 다시 시도해 주세요.');
           }
 
-          currentSessionId = data.sessionId;
-          lastAiSummary = data.aiSummary || `[상담 내용 요약] 핵심 질의: "${query}" | 분류: ${data.category || '일반행정'}`;
+          chatHistory.push({role:'user',text:query},{role:'model',text:data.answer});
+          if(chatHistory.length>6)chatHistory.splice(0,chatHistory.length-6);
+          if(data.responseType!=='conversation'){
+            currentSessionId = data.sessionId;
+            lastAiSummary = data.aiSummary || `[상담 내용 요약] 핵심 질의: "${query}" | 분류: ${data.category || '일반행정'}`;
+          }
 
-          if (data.isTransferred) {
+          if (['conversation','clarification','unavailable'].includes(data.responseType)) {
+            const turn=appendMessage('bot',data.answer);
+            if(data.canReserve){
+              const button=document.createElement('button'); button.type='button';button.className='btn-secondary';button.textContent='원하면 시연 상담 예약하기';
+              button.addEventListener('click',()=>openReserveModal(query,data.aiSummary||''));
+              turn.querySelector('.message-bubble').append(document.createElement('br'),button);
+            }
+            if(data.sources?.length){
+              const links=document.createElement('div');links.className='answer-sources';
+              for(const source of data.sources){
+                let url;try{url=new URL(source.url);}catch{continue;}
+                if(url.protocol!=='https:' || !['www.gov.kr','www.epeople.go.kr','www.safetyreport.go.kr'].includes(url.hostname))continue;
+                const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent=source.title+' ↗';links.append(link);
+              }
+              turn.querySelector('.message-bubble').append(links);
+            }
+          } else if (data.isTransferred) {
             const content = `
               <div style="font-size: 1rem; font-weight: 800; color: var(--gov-red); margin-bottom: 6px;">${escapeHtml(data.title)}</div>
               <div>${escapeHtml(data.answer).replace(/\n/g, '<br/>')}</div>
@@ -154,14 +175,15 @@
               ` : ''}
               <div class="transfer-callout">
                 <h4>담당자와 자세히 알아보세요</h4>
-                <p>상황을 더 자세히 확인해야 하는 민원이에요.<br/>상담을 예약하면 담당 부서에 위 AI 대화 요약본을 함께 전달해 처음부터 다시 설명하지 않아도 돼요.</p>
+                <p>상황을 더 자세히 확인해야 하는 민원이에요.<br/>상담을 예약하면 담당 부서에 위 상담 내용 요약을 함께 전달해 처음부터 다시 설명하지 않아도 돼요.</p>
                 <button type="button" class="btn-primary" style="width: 100%; background: var(--gov-red); border-color: var(--gov-red);" data-reserve-chat="true">담당자 상담 예약하기</button>
               </div>
             `;
             const turn = appendMessage('bot', content, true);
             turn.querySelector('[data-reserve-chat]').addEventListener('click', () => openReserveModal(query, data.aiSummary));
           } else {
-            const sourceLabel = data.source === 'faq' ? '자주 묻는 질문'
+            const sourceLabel = data.answerMode === 'verified-knowledge' ? '등록 자료에 근거한 안내'
+              : data.source === 'faq' ? '자주 묻는 질문'
               : data.source === 'cache' ? '이전 안내 다시 보기'
               : data.source === 'knowledge' ? '민원편람 안내'
               : 'AI 참고 안내';
@@ -279,7 +301,7 @@
       async function openReserveModal(queryText = '', aiSummaryText = '') {
         await portalAuth.ready;
         if (!portalAuth.user && !portalAuth.error) {
-          try { sessionStorage.setItem(draftKey, JSON.stringify({ createdAt:Date.now(), summary:queryText.slice(0,2000), aiSummary:aiSummaryText.slice(0,500), turns:chatTurns })); }
+          try { sessionStorage.setItem(draftKey, JSON.stringify({ createdAt:Date.now(), summary:queryText.slice(0,2000), aiSummary:aiSummaryText.slice(0,500), turns:chatTurns, history:portalGuidance.historyFor('',chatHistory) })); }
           catch { portalAuth.notify('상담 내용을 임시 보관하지 못했어요. 로그인 후 상담 내용을 다시 입력해 주세요.', true); }
         }
         if (!await portalAuth.requireUser('/?tab=chat')) return;
@@ -356,7 +378,7 @@
                 · 접수번호: <b style="font-family: var(--font-mono); color: var(--gov-navy);">${data.complaintNo}</b><br/>
                 · 소관부서: ${escapeHtml(data.deptName)} (${escapeHtml(data.deptTel)})<br/>
                 · 희망일시: ${escapeHtml(body.desiredDatetime || '순차 연락')}<br/>
-                · 인계내용: AI 대화 요약본이 담당 주무관에게 함께 전달되었습니다.<br/>
+                · 인계내용: 상담 내용 요약이 담당자에게 함께 전달되었습니다.<br/>
                 · 마이페이지에서 접수 수정·일정 변경·취소 및 처리 상태를 확인할 수 있어요.
               </div>
             `, true);
@@ -502,6 +524,7 @@
           if (!draft) return;
           if (!Number.isFinite(draft.createdAt) || Date.now()-draft.createdAt>30*60000 || Date.now()<draft.createdAt || typeof draft.summary!=='string' || draft.summary.length>2000) { sessionStorage.removeItem(draftKey); return; }
           if (user && !user.isAdmin) {
+            chatHistory.push(...portalGuidance.historyFor('',draft.history));
             if(Array.isArray(draft.turns))for(const turn of draft.turns.slice(-30))if(['user','bot'].includes(turn.role)&&typeof turn.text==='string')appendMessage(turn.role,turn.text.slice(0,6000));
             selectTab('chat'); openReserveModal(draft.summary, typeof draft.aiSummary==='string'?draft.aiSummary.slice(0,500):'');
             sessionStorage.removeItem(draftKey);

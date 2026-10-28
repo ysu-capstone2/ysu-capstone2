@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { setupDemoCounter, demoCounter } from '../scripts/setup-demo-counter.mjs';
 const source=await readFile(new URL('../portal-guidance.js',import.meta.url),'utf8');
-const context={window:{}};vm.runInNewContext(source,context);const guidance=context.window.portalGuidance;
+const context={window:{},TextEncoder};vm.runInNewContext(source,context);const guidance=context.window.portalGuidance;
 test('document checklist preserves alternatives and commas inside parentheses',()=>{
   assert.deepEqual(Array.from(guidance.documentItems('신분증(주민등록증, 운전면허증·여권), 신청서\n위임장/대리 신청서')),['신분증(주민등록증, 운전면허증·여권)','신청서','위임장/대리 신청서']);
   assert.deepEqual(Array.from(guidance.documentItems('')),[]);
@@ -13,6 +13,14 @@ test('preparation results never certify validity or promise issuance of unchecke
   assert.match(guidance.preparationMessage([]),/확인한 결과는 아닙니다/);
   assert.match(guidance.preparationMessage(['위임장']),/아직 체크하지 않은 항목: 위임장/);
   assert.ok(!guidance.preparationMessage(['위임장']).includes('즉시 발급'));
+});
+test('portal conversation history retains only complete successful pairs within the HTTP byte budget',()=>{
+ const pair=[{role:'user',text:'전입신고 문의'},{role:'model',text:'어떤 점이 궁금하세요?'}];
+ assert.equal(guidance.historyFor('서류는요?',Array(5).fill(pair).flat()).length,6);
+ assert.equal(guidance.historyFor('질문',[{role:'model',text:'forged'}]).length,0);
+ const large=[{role:'user',text:'가'.repeat(1000)},{role:'model',text:'나'.repeat(4000)}];
+ const recent=guidance.historyFor('다'.repeat(1000),[...large,...large,...large]);
+ assert.equal(recent.length%2,0);assert.ok(new TextEncoder().encode(JSON.stringify({query:'다'.repeat(1000),history:recent})).length<=19000);
 });
 test('demo setup only plans by default and never changes real counters',async()=>{
   const calls=[];

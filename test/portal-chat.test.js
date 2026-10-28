@@ -6,8 +6,8 @@ import { createChatService } from '../lib/chat-service.js';
 import { createChatHandler } from '../api/chat.js';
 import { generateCivilResponseWithGemini } from '../api/_gemini.js';
 
-const knowledge = { id: 1, title: '주민등록등본', content: '공식 안내', category_code: '주민', required_docs: '확인된 서류', fee: '확인된 수수료' };
-const generated = { matchedKnowledgeId: 1, confidenceScore: 90, isTransferred: false, title: '민원 답변', answer: '공식 안내를 확인해 주세요.', model: 'test-model' };
+const knowledge = { id: 1, title: '주민등록등본', content: '공식 안내', category_code: '주민', required_docs: '확인된 서류', fee: '확인된 수수료',approval_status:'승인완료' };
+const generated = { decision:'answer',matchedKnowledgeId: 1, confidenceScore: 90, isTransferred: false, category:'주민',title: '민원 답변', answer: '공식 안내를 확인해 주세요.', requiredDocs:'확인되지 않은 서류',fee:'확인되지 않은 금액',suggestedAction:'공식 안내 확인',model: 'test-model' };
 function setup(options = {}) {
   let calls = 0; let reserves = 0;
   const service = createPortalChatService({
@@ -65,13 +65,13 @@ test('portal simultaneous duplicates generate once', async () => {
   assert.equal(service.calls(), 1); assert.deepEqual(values.map((value) => value.source), ['gemini', 'cache']);
 });
 
-test('low-confidence answers retain department and consultation fields', async () => {
-  const service = setup({ generate: async () => ({ ...generated, confidenceScore: 40, isTransferred: true }) });
+test('actual requests for human judgment retain department and consultation fields', async () => {
+  const service = setup({ generate: async () => ({ ...generated, decision:'transfer',confidenceScore: 40, isTransferred: true }) });
   const value = await service.answer(input);
   assert.equal(value.isTransferred, true); assert.equal(value.departments[0].dept_code, 'D01');
   assert.equal(value.consultTypes.length, 3);
   assert.ok(value.aiSummary.includes('[상담 내용 요약]'));
-  assert.ok(Array.isArray(value.consultSlots) && value.consultSlots.length >= 3);
+  assert.equal(value.responseType,'transfer');
   assert.equal((await service.answer(input)).source, 'cache');
 });
 
@@ -84,9 +84,9 @@ test('generic preparation FAQ never invents mandatory documents or a fee without
   assert.match(value.answer, /민원마다 다릅니다/);
 });
 
-test('missing Gemini key falls back to a department and database failures stay actionable', async () => {
+test('missing Gemini key explains limited guidance without requiring an expert and database errors stay actionable', async () => {
   const fallback = setup({ getKey: () => '' });
-  assert.equal((await fallback.answer(input)).isTransferred, true); assert.equal(fallback.calls(), 0);
+  const reply=await fallback.answer(input);assert.equal(reply.isTransferred, false);assert.equal(reply.responseType,'unavailable');assert.equal(reply.canReserve,true);assert.equal(fallback.calls(), 0);
   const failed = setup({ request: async () => { throw new Error('private DB details'); } });
   await assert.rejects(failed.answer(input), (error) => error.status === 503 && !error.message.includes('private'));
 });
@@ -94,7 +94,7 @@ test('missing Gemini key falls back to a department and database failures stay a
 test('a fresh empty knowledge base offers consultation without generating unsupported facts', async () => {
   const service = setup({ request: async () => [] });
   const value = await service.answer(input);
-  assert.equal(value.isTransferred, true); assert.deepEqual(value.departments, []);
+  assert.equal(value.isTransferred, false);assert.equal(value.responseType,'unavailable');
   assert.equal(service.calls(), 0); assert.equal(service.reserves(), 0);
 });
 
@@ -148,6 +148,16 @@ test('structured Gemini adapter uses one bounded REST call and retains the exist
     assert.equal(body.generationConfig.responseMimeType, 'application/json');
     return { ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(generated) }] } }] }) };
   });
-  const result = await generateCivilResponseWithGemini(input.message, [knowledge]);
+  const result = await generateCivilResponseWithGemini(input.message, [knowledge], [{role:'user',text:'전입신고 문의'},{role:'model',text:'궁금한 내용을 알려주세요.'}]);
   assert.equal(result.answer, generated.answer); assert.equal(result.confidenceScore, 90); assert.equal(calls, 1);
+});
+
+test('structured Gemini responses reject wrong types and missing decisions instead of coercing them into answers', async(t)=>{
+  const old=process.env.GEMINI_API_KEY;process.env.GEMINI_API_KEY='fixture-key';
+  t.after(()=>{if(old===undefined)delete process.env.GEMINI_API_KEY;else process.env.GEMINI_API_KEY=old;});
+  let payload;
+  t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(payload)}]}}]})}));
+  for(const patch of [{decision:null},{confidenceScore:'90'},{isTransferred:'false'},{matchedKnowledgeId:'1'},{answer:{text:'invalid'}},{confidenceScore:999}]){
+    payload={...generated,...patch};await assert.rejects(generateCivilResponseWithGemini(input.message,[knowledge]),/invalid structured/);
+  }
 });

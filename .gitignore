@@ -230,6 +230,7 @@ __marimo__/
 !/lib/gemini-budget.js
 !/lib/portal-chat.js
 !/lib/privacy-requests.js
+!/lib/conversation.js
 
 .vercel
 .env*

@@ -19,7 +19,7 @@ export function createChatHandler({ service = createPortalChatService(), request
       const body = await readBody(req);
       // Retain both the existing portal's query contract and the new guide's message contract.
       if (body?.query === undefined) { req.body = body; return guideHandler(req, res); }
-      const { message } = validateMessage({ message: body.query });
+      const { message, history } = validateMessage({ message: body.query, history: body.history });
       const cookies = req.headers?.cookie || '';
       let sessionId = cookies.match(/(?:^|;\s*)minwon_session=([0-9a-f-]{36})(?:;|$)/)?.[1];
       if (!sessionId) {
@@ -28,7 +28,9 @@ export function createChatHandler({ service = createPortalChatService(), request
         res.setHeader('Set-Cookie', `minwon_session=${sessionId}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure ? '; Secure' : ''}`);
       }
       const citizenId = 'CITIZEN-GUEST'; // Client supplied identities never grant access to records.
-      const result = await service.answer({ message, sessionId: `${sessionId}:${citizenId}` });
+      const result = await service.answer({ message, history, sessionId: `${sessionId}:${citizenId}` });
+      // Greetings, clarification and unavailable answers are not resolved complaints or expert handoffs.
+      if (['conversation','clarification','unavailable'].includes(result.responseType)) return res.status(200).json({ ok:true, ...result, sessionId:null });
       let recordId = null;
       try {
         const records = await request('chat_session', { method: 'POST', body: JSON.stringify({
