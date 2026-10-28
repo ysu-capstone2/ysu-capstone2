@@ -70,7 +70,17 @@ test('low-confidence answers retain department and consultation fields', async (
   const value = await service.answer(input);
   assert.equal(value.isTransferred, true); assert.equal(value.departments[0].dept_code, 'D01');
   assert.equal(value.consultTypes.length, 3);
+  assert.ok(value.aiSummary.includes('[AI 대화 요약]'));
+  assert.ok(Array.isArray(value.consultSlots) && value.consultSlots.length >= 3);
   assert.equal((await service.answer(input)).source, 'cache');
+});
+
+test('document preparation FAQ provides requiredDocs checklist metadata', async () => {
+  const service = setup({ getKey: () => '', request: async () => { throw new Error('DB unavailable'); } });
+  const value = await service.answer({ ...input, message: '민원 신청 필요 서류' });
+  assert.equal(value.source, 'faq');
+  assert.ok(value.requiredDocs.includes('신분증'));
+  assert.ok(value.fee.includes('정부24'));
 });
 
 test('missing Gemini key falls back to a department and database failures stay actionable', async () => {

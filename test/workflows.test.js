@@ -43,7 +43,7 @@ test('administrator search and pagination query the complete data set with safe 
   if(url.endsWith('/auth/v1/user'))return response(200,{...user,app_metadata:{role:'admin'}});
   if(url.includes('rpc/portal_summary'))return response(200,{totalComplaints:150});
   if(url.includes('chat_session'))return response(200,[]);
-  const params=new URL(url).searchParams;assert.equal(params.get('offset'),'100');assert.equal(params.get('limit'),'21');assert.match(params.get('or'),/citizen_name\.ilike\."%옛 접수,\(이름\)%"/);
+  const params=new URL(url).searchParams;if(params.get('limit')==='100'){assert.equal(params.has('or'),false);return response(200,[]);}assert.equal(params.get('offset'),'100');assert.equal(params.get('limit'),'21');assert.match(params.get('or'),/citizen_name\.ilike\."%옛 접수,\(이름\)%"/);
   return response(200,Array.from({length:21},(_,i)=>({id:i})));
  });assert.equal(result.code,200);assert.equal(result.body.complaints.length,20);assert.equal(result.body.pagination.hasNext,true);assert.equal(result.body.pagination.page,6);
  assert.throws(()=>listQuery({page:'-1'}));assert.throws(()=>listQuery({pageSize:'1000'}));assert.throws(()=>listQuery({q:'x'.repeat(101)}));
@@ -96,6 +96,14 @@ test('stale administrator writes cannot overwrite a cancelled or changed receipt
   if(url.endsWith('/auth/v1/user'))return response(200,{...user,app_metadata:{role:'admin'}});
   const p=new URL(url).searchParams;assert.equal(p.get('process_status'),'neq.취소');assert.equal(p.get('updated_at'),'eq.'+timestamp);return response(200,[]);
  });assert.equal(result.code,409);
+});
+
+test('administrator due dates are saved with the conditional status update in a single write',async()=>{
+ let writes=0;
+ const result=await run(admin,req('PATCH',{id,status:'처리중',dueDate:'2026-11-01',updatedAt:'2026-10-28T00:00:00Z'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,{...user,app_metadata:{role:'admin'}});
+  writes++;assert.equal(options.method,'PATCH');assert.equal(JSON.parse(options.body).due_date,'2026-11-01');assert.ok(new URL(url).searchParams.has('updated_at'));return response(200,[{id}]);
+ });assert.equal(result.code,200);assert.equal(writes,1);
 });
 
 test('password recovery uses a canonical callback and does not reveal account existence or tokens',async()=>{

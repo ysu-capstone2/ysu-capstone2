@@ -10,7 +10,7 @@ const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));await ne
 
 async function boot(page='mypage'){
  const elements=new Map(),requests=[],intervals=[],listeners={},forms=new Map();let failList=false,failMutation=false,revision=initialRevision;
- const make=()=>({value:'',textContent:'',hidden:true,disabled:false,dataset:{},handlers:{},attributes:{},classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.handlers[k]=v;},querySelector(){return make();},querySelectorAll(){return [];},closest(){return null;},append(){},prepend(){}});
+ const make=()=>({value:'',textContent:'',hidden:true,disabled:false,dataset:{},handlers:{},attributes:{},classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listenerCounts ||= {};this.listenerCounts[k]=(this.listenerCounts[k]||0)+1;this.handlers[k]=v;},querySelector(){return make();},querySelectorAll(){return [];},closest(){return null;},append(){},prepend(){}});
  function form(kind){
   const f=make();f.dataset=kind==='member'?{id,complaintAction:'supplement'}:{receiptId:id,updatedAt:initialRevision};
   f.fields=kind==='member'?{text:{value:''}}:{status:{value:'보완요청'},officer:{value:'담당자'},result:{value:'추가 내용 요청'}};
@@ -72,6 +72,13 @@ test('member retries preserve their operation ID after a lost response',async()=
  const mutations=ui.requests.filter(r=>r.path==='/api/complaints');assert.equal(mutations.length,2);assert.equal(mutations[0].body.requestId,mutations[1].body.requestId);assert.equal(mutations[0].body.text,mutations[1].body.text);
 });
 
+test('member contact, consultation type and content edits retain the existing lookup API',async()=>{
+ const ui=await boot(),container=ui.get('myReceipts'),form=ui.forms.get('myReceipts')[0];
+ form.dataset.complaintAction='edit';form.fields={summary:{value:'수정한 상담 내용'},consultType:{value:'방문상담'},citizenTel:{value:'010-1111-2222'}};
+ await container.handlers.submit({target:{closest:()=>form},preventDefault(){}});
+ const mutation=ui.requests.find(r=>r.path==='/api/lookup'&&r.method==='PATCH');assert.ok(mutation);assert.equal(mutation.body.action,'edit');assert.equal(mutation.body.consultType,'방문상담');assert.equal(mutation.body.citizenTel,'010-1111-2222');
+});
+
 test('administrator retries reuse the observed revision even after an automatic refresh',async()=>{
  const ui=await boot('admin'),container=ui.get('adminCounters');ui.failMutation();
  await container.handlers.click({target:ui.counterButton()});
@@ -92,4 +99,9 @@ test('status selection resets list paging and ticket polling leaves receipt draf
  const ui=await boot();ui.get('receiptStatus').value='보완요청';await ui.get('receiptStatus').handlers.change();await flush();
  const lookup=ui.requests.filter(r=>r.path.startsWith('/api/lookup')).at(-1);assert.equal(new URL(lookup.path,'https://portal.example').searchParams.get('status'),'보완요청');
  const container=ui.get('myReceipts'),html=container.innerHTML;await ui.intervals[0]();await flush();assert.equal(container.innerHTML,html);assert.match(ui.get('myTicketStatus').textContent,/마지막 확인/);
+});
+
+
+test('integration registers knowledge approval and report actions exactly once',async()=>{
+ const ui=await boot('admin');assert.equal(ui.get('knowledgeForm').listenerCounts.submit,1);assert.equal(ui.get('adminLeaderReport').listenerCounts.click,1);
 });

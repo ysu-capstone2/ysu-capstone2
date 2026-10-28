@@ -17,8 +17,16 @@ create table if not exists public.department_info (
 );
 alter table public.admin_knowledge enable row level security;
 alter table public.department_info enable row level security;
-revoke all on public.admin_knowledge, public.department_info from anon, authenticated;
+-- Preserve the public-reference and administrator policies from the ERD migration.
+grant select on public.admin_knowledge, public.department_info to anon, authenticated;
 grant select on public.admin_knowledge, public.department_info to service_role;
+-- Keep administrator writes without evaluating a second SELECT policy.
+drop policy if exists knowledge_admin_write on public.admin_knowledge;
+create policy knowledge_admin_insert on public.admin_knowledge for insert to authenticated
+ with check (((select auth.jwt())->'app_metadata'->>'role')='admin');
+create policy knowledge_admin_update on public.admin_knowledge for update to authenticated
+ using (((select auth.jwt())->'app_metadata'->>'role')='admin')
+ with check (((select auth.jwt())->'app_metadata'->>'role')='admin');
 
 alter table public.citizen_complaints add column preferred_at timestamptz;
 alter table public.citizen_complaints add column supplements jsonb not null default '[]'::jsonb
