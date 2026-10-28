@@ -126,7 +126,7 @@ test('citizen can edit, submit supplement, and cancel own complaint according to
  const suppRes=await run(lookup,req('PATCH',{action:'supplement',id:receiptId,supplement:'건축 도면 추가 제출'}),(url,options)=>{
   if(url.endsWith('/auth/v1/user'))return response(200,user);
   if(!options.method)return response(200,[{id:receiptId,user_id:user.id,process_status:'보완요청',summary:'원본 질의'}]);
-  const body=JSON.parse(options.body);assert.equal(body.process_status,'처리중');assert.match(body.summary,/\[민원인 보완제출\] 건축 도면 추가 제출/);return response(200,[{}]);
+  assert.ok(url.endsWith('/rpc/portal_member_complaint_once'));const body=JSON.parse(options.body);assert.equal(body.p_action,'supplement');assert.equal(body.p_text,'건축 도면 추가 제출');assert.equal(body.p_user,user.id);return response(200,{ok:true});
  });assert.equal(suppRes.code,200);
  const cancelBlocked=await run(lookup,req('PATCH',{action:'cancel',id:receiptId}),(url,options)=>{
   if(url.endsWith('/auth/v1/user'))return response(200,user);

@@ -1,5 +1,5 @@
 import { adminSession, userData, fail, method } from './_auth.js';
-
+import { listQuery, listPage } from './_complaints.js';
 function buildAnalytics(complaints = [], sessions = []) {
   const safeComplaints = Array.isArray(complaints) ? complaints : [];
   const safeSessions = Array.isArray(sessions) ? sessions : [];
@@ -46,7 +46,7 @@ function buildAnalytics(complaints = [], sessions = []) {
     byConsultType[cType] = (byConsultType[cType] || 0) + 1;
     const day = String(c.created_at || '').slice(0, 10);
     if (day) byDateMap.set(day, (byDateMap.get(day) || 0) + 1);
-    if (c.due_date && c.due_date < today && c.process_status !== '완료') overdueCount++;
+    if (c.due_date && c.due_date < today && !['완료','취소'].includes(c.process_status)) overdueCount++;
   }
 
   const byDate = [...byDateMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-7).map(([date, count]) => ({ date, count }));
@@ -71,12 +71,14 @@ export default async function handler(req, res) {
   try {
     method(req, res, ['GET']);
     const { token } = await adminSession(req, res);
-    const [summary, complaints, recentSessions] = await Promise.all([
+    const { page, size, params } = listQuery(req.query, { admin: true });
+    const [summary, complaints, recentSessions, analyticsComplaints] = await Promise.all([
       userData(token, 'rpc/portal_summary', { method: 'POST', body: '{}' }),
-      userData(token, 'citizen_complaints?order=created_at.desc&limit=100'),
+      userData(token, `citizen_complaints?${params}`),
       userData(token, 'chat_session?select=id,query,answer,status,created_at,channel,confidence_score,knowledge_id&order=id.desc&limit=50'),
+      userData(token, 'citizen_complaints?order=created_at.desc,id.desc&limit=100'),
     ]);
-    const analytics = buildAnalytics(complaints, recentSessions);
-    return res.status(200).json({ ok: true, summary, complaints, recentSessions, analytics });
+    const result = listPage(complaints, page, size);
+    return res.status(200).json({ ok: true, summary, complaints: result.rows, pagination: result.pagination, recentSessions, analytics:buildAnalytics(analyticsComplaints,recentSessions) });
   } catch (error) { return fail(res, error); }
 }

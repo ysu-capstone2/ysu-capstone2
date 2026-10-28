@@ -25,6 +25,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, user: current ? profile(current.user) : null });
     }
     const body = await jsonBody(req);
+    if (req.method === 'POST' && body.action === 'recover') {
+      const email = typeof body.email === 'string' ? body.email.trim() : '';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new ApiError(400, '가입한 이메일을 확인해 주세요.');
+      await authRequest(`recover?redirect_to=${encodeURIComponent(signupRedirect(req))}`, { method: 'POST', body: JSON.stringify({ email }) });
+      return res.status(200).json({ ok: true, retryAfter: 60, message: '가입한 이메일이라면 비밀번호 재설정 메일을 보냈어요. 가장 최근 메일의 링크를 열어 주세요.' });
+    }
+    if (req.method === 'POST' && body.action === 'reset-password') {
+      const token = body.accessToken, password = body.password;
+      if (typeof token !== 'string' || !token || token.length > 12000 || typeof password !== 'string' || password.length < 10 || password.length > 128) throw new ApiError(400, '재설정 링크와 새 비밀번호(10~128자)를 확인해 주세요.');
+      // Recovery tokens are verified by Auth, never decoded/trusted or persisted in browser storage.
+      const user = await authRequest('user', { token });
+      if (!user.id || user.is_anonymous) throw new ApiError(401, '새 재설정 메일을 요청해 주세요.');
+      await authRequest('user', { method: 'PUT', token, body: JSON.stringify({ password }) });
+      // Password has already changed; a temporary signout failure must not imply it failed.
+      try { await authRequest('logout?scope=local', { method: 'POST', token }); } catch {}
+      setSession(req, res, null);
+      return res.status(200).json({ ok: true, message: '비밀번호를 변경했어요. 새 비밀번호로 로그인해 주세요.' });
+    }
     if (req.method === 'PATCH') {
       const current = await session(req, res);
       const name = String(body.name || '').trim(), phone = String(body.phone || '').trim();

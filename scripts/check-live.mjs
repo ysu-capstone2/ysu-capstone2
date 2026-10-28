@@ -62,8 +62,8 @@ try {
  assert.ok(attempts.every(r=>r.status===200));assert.equal(new Set(attempts.map(r=>r.data.ticket.id)).size,1);
  const ticketB=await b.call('/api/counters','POST',{action:'ticket',counterId});assert.equal(ticketB.status,200);assert.equal(ticketB.data.ticket.ticket_no,2);
  const before=(await guest.call('/api/counters')).data.counters.find(c=>c.id===counterId);assert.equal(before.waitingCount,2);
- assert.equal((await a.call('/api/counters','PATCH',{action:'next',counterId})).status,403);
- assert.equal((await admin.call('/api/counters','PATCH',{action:'next',counterId})).status,200);
+ assert.equal((await a.call('/api/counters','PATCH',{action:'next',counterId,requestId:randomUUID(),updatedAt:(await admin.call('/api/counters')).data.counters.find(c=>c.id===counterId).updatedAt})).status,403);
+ assert.equal((await admin.call('/api/counters','PATCH',{action:'next',counterId,requestId:randomUUID(),updatedAt:(await admin.call('/api/counters')).data.counters.find(c=>c.id===counterId).updatedAt})).status,200);
  const after=(await guest.call('/api/counters')).data.counters.find(c=>c.id===counterId);assert.equal(after.waitingCount,1);assert.equal(after.currentCallingNo,1);
  assert.equal((await a.call('/api/counters?mine=1')).data.tickets.find(t=>t.counter_id===counterId).status,'호출');
  const otherTickets=await direct(b,`queue_tickets?counter_id=eq.${counterId}`);assert.ok(otherTickets.data.every(t=>t.user_id===tempUser.id));pass('concurrent ticket dedup, count 2 → 1, and owner-only tickets');
@@ -75,8 +75,9 @@ try {
  assert.equal((await guest.call('/api/counters')).data.counters.find(c=>c.id===counterId).waitingCount,0);
  assert.equal((await a.call('/api/counters','POST',{action:'cancel',ticketId:attempts[0].data.ticket.id})).status,409);
  const nextTicket=await b.call('/api/counters','POST',{action:'ticket',counterId});assert.equal(nextTicket.status,200);
- const race=await Promise.all([admin.call('/api/counters','PATCH',{action:'next',counterId}),b.call('/api/counters','POST',{action:'cancel',ticketId:nextTicket.data.ticket.id})]);
- assert.equal(race[0].status,200);assert.ok([200,409].includes(race[1].status));
+ const race=await Promise.all([admin.call('/api/counters','PATCH',{action:'next',counterId,requestId:randomUUID(),updatedAt:(await admin.call('/api/counters')).data.counters.find(c=>c.id===counterId).updatedAt}),b.call('/api/counters','POST',{action:'cancel',ticketId:nextTicket.data.ticket.id})]);
+ assert.ok([200,409].includes(race[0].status));assert.ok([200,409].includes(race[1].status));
+ assert.ok(race.some(result=>result.status===200));
  assert.equal((await guest.call('/api/counters')).data.counters.find(c=>c.id===counterId).waitingCount,0);
  pass('owner cancellation, repeat cancellation, and call/cancel race keep the queue consistent');
  const profile=await b.call('/api/auth','PATCH',{name:'프로필 검증',phone:'010-0000-0000',role:'admin'});assert.equal(profile.status,200);assert.equal(profile.data.user.isAdmin,false);pass('profile update cannot grant administrator role');
@@ -84,8 +85,8 @@ try {
  assert.equal((await a.call('/api/auth','POST',{action:'logout'})).status,200);assert.equal((await a.call('/api/lookup')).status,401);pass('logout and subsequent access denial');
  console.log('All live integration checks passed.');
 } finally {
- if(counterId){await service(`rest/v1/queue_tickets?counter_id=eq.${counterId}`,{method:'DELETE'});await service(`rest/v1/service_counters?id=eq.${counterId}`,{method:'DELETE'});}
- if(receiptId)await service(`rest/v1/citizen_complaints?id=eq.${receiptId}`,{method:'DELETE'});
+ if(counterId){await service(`rest/v1/portal_action_receipts?entity_id=eq.${counterId}`,{method:'DELETE'});await service(`rest/v1/queue_tickets?counter_id=eq.${counterId}`,{method:'DELETE'});await service(`rest/v1/service_counters?id=eq.${counterId}`,{method:'DELETE'});}
+ if(receiptId){await service(`rest/v1/portal_action_receipts?entity_id=eq.${receiptId}`,{method:'DELETE'});await service(`rest/v1/citizen_complaints?id=eq.${receiptId}`,{method:'DELETE'});}
  // Test accounts are retained at the user's request; only test records are removed.
  await Promise.allSettled([b.call('/api/auth','POST',{action:'logout'}),admin.call('/api/auth','POST',{action:'logout'})]);
  console.log('Temporary test records removed. Test account retained in .local/live-test-account.json.');

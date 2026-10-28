@@ -36,11 +36,13 @@ export default async function handler(req, res) {
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new ApiError(400, '처리 예정일 형식을 확인해 주세요.');
     const result = reviewMemo && !rawResult.includes('[사전검토메모:') ? `[사전검토메모: ${reviewMemo}]\n${rawResult}`.trim() : rawResult;
     if (result.length > 2000 || officer.length > 50) throw new ApiError(400, '담당자 또는 안내 내용이 너무 깁니다.');
-    const rows = await userData(token, `citizen_complaints?id=eq.${encodeURIComponent(body.id)}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result, officer_name: officer, updated_at: new Date().toISOString() }) });
-    if (!rows.length) throw new ApiError(404, '접수 건을 찾지 못했습니다.');
-    if (dueDate) {
-      try { await supabaseRequest(`citizen_complaints?id=eq.${encodeURIComponent(body.id)}`, { method: 'PATCH', body: JSON.stringify({ due_date: dueDate }) }); } catch {}
+    const params = new URLSearchParams({ id: `eq.${body.id}`, process_status: 'neq.취소' });
+    if (body.updatedAt) {
+      if (typeof body.updatedAt !== 'string' || !Number.isFinite(Date.parse(body.updatedAt))) throw new ApiError(400, '접수 변경 시각을 확인해 주세요.');
+      params.set('updated_at', `eq.${body.updatedAt}`);
     }
+    const rows = await userData(token, `citizen_complaints?${params}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result, officer_name: officer, updated_at: new Date().toISOString(), ...(Object.hasOwn(body,'dueDate')?{due_date:dueDate || null}:{}) }) });
+    if (!rows.length) throw new ApiError(409, '접수가 변경되었거나 취소됐어요. 새로고침 후 다시 확인해 주세요.');
     return res.status(200).json({ ok: true });
   } catch (error) { return fail(res, error); }
 }
