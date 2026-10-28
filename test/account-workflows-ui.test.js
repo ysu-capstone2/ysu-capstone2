@@ -38,6 +38,10 @@ async function boot(page='mypage'){
   fetch:async(path,options={})=>{
    const body=options.body?JSON.parse(options.body):null;requests.push({path,body,method:options.method||'GET'});
    if(path==='/api/auth')return response({ok:true,user:member});
+   if(path==='/api/auth?resource=privacy'){
+    if(options.method==='POST'&&failMutation){failMutation=false;throw new Error('lost response');}
+    return response({ok:true,requests:[],request:{updated_at:laterRevision}});
+   }
    if(options.method==='PATCH'){
     if(failMutation){failMutation=false;if(path==='/api/counters')revision=laterRevision;throw new Error('lost response');}
     return response({ok:true,replayed:true});
@@ -104,4 +108,27 @@ test('status selection resets list paging and ticket polling leaves receipt draf
 
 test('integration registers knowledge approval and report actions exactly once',async()=>{
  const ui=await boot('admin');assert.equal(ui.get('knowledgeForm').listenerCounts.submit,1);assert.equal(ui.get('adminLeaderReport').listenerCounts.click,1);
+});
+
+test('privacy request retries keep the message and request ID after a lost response',async()=>{
+ const ui=await boot(),form=ui.get('privacyRequestForm'),button={disabled:false};
+ form.querySelector=()=>button;form.reset=()=>{};
+ ui.get('privacyKind').value='delete';ui.get('privacyText').value='내 상담 기록을 삭제해 주세요.';
+ ui.failMutation();const event={target:form,preventDefault(){}};
+ await form.handlers.submit(event);
+ assert.equal(ui.get('privacyText').value,'내 상담 기록을 삭제해 주세요.');assert.equal(button.disabled,false);
+ assert.match(ui.get('privacyRequestMessage').textContent,/같은 내용으로 다시/);
+ await form.handlers.submit(event);
+ const posts=ui.requests.filter(r=>r.path==='/api/auth?resource=privacy'&&r.method==='POST');
+ assert.equal(posts.length,2);assert.equal(posts[0].body.requestId,posts[1].body.requestId);
+ assert.match(ui.get('privacyRequestMessage').textContent,/제출 즉시 삭제되지는 않습니다/);
+});
+
+test('administrator privacy responses send the observed version and retain the message on failure',async()=>{
+ const ui=await boot('admin'),button={disabled:false},notice={textContent:''};
+ const form={dataset:{privacyId:id,updatedAt:initialRevision},fields:{status:{value:'처리중'},response:{value:'작성 중인 답변'}},querySelector:s=>s==='button'?button:notice,closest(){return this;}};
+ await ui.get('adminPrivacyRequests').handlers.submit({target:form,preventDefault(){}});
+ const saved=ui.requests.find(r=>r.path==='/api/auth?resource=privacy'&&r.method==='PATCH');
+ assert.equal(saved.body.updatedAt,initialRevision);assert.equal(saved.body.response,'작성 중인 답변');
+ assert.equal(form.dataset.updatedAt,laterRevision);assert.equal(button.disabled,false);
 });

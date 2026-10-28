@@ -1,4 +1,5 @@
 import { authRequest, config, session, setSession, profile, jsonBody, fail, method, ApiError } from './_auth.js';
+import privacyRequests from '../lib/privacy-requests.js';
 
 export function signupRedirect(req) {
   const configured = process.env.PORTAL_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '');
@@ -17,6 +18,7 @@ export function signupRedirect(req) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.resource === 'privacy') return privacyRequests(req, res);
   try {
     method(req, res, ['GET', 'POST', 'PATCH']);
     if (req.method === 'GET') {
