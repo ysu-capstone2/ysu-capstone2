@@ -21,6 +21,7 @@ const assets = new Map([
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/portal.css', ['portal.css', 'text/css; charset=utf-8']],
+  ['/favicon.svg', ['favicon.svg', 'image/svg+xml']],
   ['/portal-guidance.js', ['portal-guidance.js', 'text/javascript; charset=utf-8']],
   ['/privacy.html', ['privacy.html', 'text/html; charset=utf-8']],
   ...['login.html','signup.html','mypage.html'].map(file => ['/'+file,[file,'text/html; charset=utf-8']]),
