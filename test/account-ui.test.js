@@ -43,6 +43,10 @@ test('authentication service outage offers retry without redirecting a protected
  const result=await boot({page:'mypage',outage:true});assert.equal(result.destination,null);assert.ok(result.context.window.portalAuth.error);
  assert.match(result.elements.accountNav.innerHTML,/다시 확인/);assert.match(result.elements.accountMessage.textContent,/다시 확인/);
 });
+test('guest receipt links retain the mypage section through login',async()=>{
+ const result=await boot({page:'mypage',hash:'#receipts'});
+ assert.equal(result.destination,'/login.html?next='+encodeURIComponent('/mypage.html#receipts'));
+});
 
 test('confirmation resend sends only the email once and shows a cooldown',async()=>{
  const result=await boot({resend:true});const button=result.elements.resendEmailButton;

@@ -22,7 +22,7 @@
     if (!input || !input.startsWith('/')) return null;
     try { const url = new URL(input,location.origin); return url.origin===location.origin && !['/login.html','/signup.html'].includes(url.pathname) ? url.pathname+url.search+url.hash : null; } catch { return null; }
   }
-  function loginUrl(next = location.pathname+location.search) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
+  function loginUrl(next = location.pathname+location.search+location.hash) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search+location.hash ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
   const auth = window.portalAuth = { user:null, ready:null, error:null, api, loginUrl, notify:message };
   const actionRequests = new Map();
   const formDrafts = new Map();
@@ -178,7 +178,7 @@
         const data=await api('/api/auth',{method:'POST',body:JSON.stringify({action,email:$('email').value,password:$('password').value,...(action==='signup'?{name:$('name').value}:{})})});
         $('password').value=''; if ($('passwordConfirm')) $('passwordConfirm').value='';
         if (data.requiresConfirmation) { message(data.message); if($('resendArea'))$('resendArea').hidden=false; return; }
-        location.replace(data.user.isAdmin ? '/admin.html' : (next || '/mypage.html'));
+        location.replace(data.user.isAdmin ? '/admin.html' : (next || '/'));
       } catch(error) { message(error.message,true); if(error.code==='email_not_confirmed' && $('resendArea'))$('resendArea').hidden=false; }
       finally { button.disabled=false; }
     });
@@ -244,7 +244,10 @@
     if (!await protectedPage()) return;
     $('memberContent').hidden=false; $('welcomeName').textContent=(auth.user.name||'회원')+'님, 반가워요';
     $('profileEmail').value=auth.user.email; $('profileName').value=auth.user.name; $('profilePhone').value=auth.user.phone;
+    const receiptQuery=new URLSearchParams(location.search);
+    $('receiptFilter').value=(receiptQuery.get('q')||receiptQuery.get('no')||'').trim().slice(0,100);
     await Promise.all([loadReceipts(),loadTickets()]);
+    if(location.hash==='#receipts')$('receipts')?.scrollIntoView?.({block:'start'});
     $('myTickets')?.addEventListener('click',async event=>{
       const button=event.target.closest('[data-cancel-ticket]'); if(!button)return;
       if(button.disabled||ticketMutation)return;button.disabled=true;ticketMutation=true;ticketVersion++;
@@ -308,13 +311,13 @@
       <div class="metrics-row" style="margin-bottom:8px;">
         <div class="gov-metric-card"><div class="gov-metric-lbl">챗봇 자체 완결률</div><div class="gov-metric-val">${a.selfResolveRate ?? 0}%</div><p class="admin-mini">자체완결 ${a.selfResolvedCount ?? 0}건 / 이관 ${a.transferredCount ?? 0}건</p></div>
         <div class="gov-metric-card"><div class="gov-metric-lbl">야간·공휴일 24시 응대</div><div class="gov-metric-val">${a.nightHolidayCount ?? 0}건</div><p class="admin-mini">일과시간(09~18시) 외 인입</p></div>
-        <div class="gov-metric-card"><div class="gov-metric-lbl">평균 RAG 검색 신뢰도</div><div class="gov-metric-val">${a.avgConfidence ?? 0}점</div><p class="admin-mini">65점 미만 시 자동 담당자 이관</p></div>
+        <div class="gov-metric-card"><div class="gov-metric-lbl">기존 기록의 모델 참고 점수</div><div class="gov-metric-val">${a.avgConfidence>0?`${a.avgConfidence}점`:'미산출'}</div><p class="admin-mini">정답률이 아닙니다. 새 안내는 승인 자료와의 연결 여부를 확인합니다.</p></div>
         <div class="gov-metric-card"><div class="gov-metric-lbl">법정기한 경과(재안내 대상)</div><div class="gov-metric-val">${a.overdueCount ?? 0}건</div><p class="admin-mini">처리기한 경과 미결 민원</p></div>
       </div>
       ${a.surgeDetected ? `<div style="padding:12px 14px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:6px;font-size:0.88rem;"><b>🚨 [민원 급증 자동 감지 경보]</b> 직전 주기 대비 민원 접수량이 2배 이상 급증했습니다. 창구 인력 재배치 및 빈출 질의 지식베이스 갱신을 권장합니다.</div>` : ''}
       <div class="receipt-card">
         <h3>🔍 미해결·저확신 질의 키워드 군집 및 오답 위험 모니터링</h3>
-        <p class="admin-mini" style="margin-bottom:12px;">신뢰도 기준치(65점) 미달 또는 담당자 이관 질의에서 자동 추출된 키워드 군집입니다. 동일 키워드가 2건 이상 반복되면 지식 누락 경보가 표시됩니다.</p>
+        <p class="admin-mini" style="margin-bottom:12px;">기존 저점수 기록 또는 담당자 상담 연결 질의에서 추출한 키워드입니다. 동일 키워드가 2건 이상 반복되면 지식 누락 경보가 표시됩니다.</p>
         ${clusters.length ? `<div style="display:grid;gap:8px;">${clusters.map(item => `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:${item.needsKnowledgeUpdate ? '#fff1f2' : '#f8fafc'};border:1px solid ${item.needsKnowledgeUpdate ? '#fecdd3' : '#e2e8f0'};border-radius:6px;">
             <div>

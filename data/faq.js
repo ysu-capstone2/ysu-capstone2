@@ -1,4 +1,4 @@
-export const FAQ_VERSION = '2026-10-21-v2';
+export const FAQ_VERSION = '2026-10-28-v3';
 
 const epeople = { title: '국민신문고 민원 안내', url: 'https://www.epeople.go.kr/nep/pttn/pttnOnln/pttnOnlnContent.npaid' };
 const gov = { title: '정부24', url: 'https://www.gov.kr/' };
