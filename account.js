@@ -22,7 +22,7 @@
     if (!input || !input.startsWith('/')) return null;
     try { const url = new URL(input,location.origin); return url.origin===location.origin && !['/login.html','/signup.html'].includes(url.pathname) ? url.pathname+url.search+url.hash : null; } catch { return null; }
   }
-  function loginUrl(next = location.pathname+location.search) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
+  function loginUrl(next = location.pathname+location.search+location.hash) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search+location.hash ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
   const auth = window.portalAuth = { user:null, ready:null, error:null, api, loginUrl, notify:message };
   const actionRequests = new Map();
   const formDrafts = new Map();
@@ -244,7 +244,10 @@
     if (!await protectedPage()) return;
     $('memberContent').hidden=false; $('welcomeName').textContent=(auth.user.name||'회원')+'님, 반가워요';
     $('profileEmail').value=auth.user.email; $('profileName').value=auth.user.name; $('profilePhone').value=auth.user.phone;
+    const receiptQuery=new URLSearchParams(location.search);
+    $('receiptFilter').value=(receiptQuery.get('q')||receiptQuery.get('no')||'').trim().slice(0,100);
     await Promise.all([loadReceipts(),loadTickets()]);
+    if(location.hash==='#receipts')$('receipts')?.scrollIntoView?.({block:'start'});
     $('myTickets')?.addEventListener('click',async event=>{
       const button=event.target.closest('[data-cancel-ticket]'); if(!button)return;
       if(button.disabled||ticketMutation)return;button.disabled=true;ticketMutation=true;ticketVersion++;

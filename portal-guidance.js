@@ -28,5 +28,10 @@
     while(recent.length && (recent.reduce((n,turn)=>n+turn.text.length,0)>12000 || new TextEncoder().encode(JSON.stringify({query:message,history:recent})).length>19000))recent=recent.slice(2);
     return recent;
   }
-  window.portalGuidance = { documentItems, preparationMessage, historyFor };
+  function receiptDestination(search) {
+    const params=new URLSearchParams(search);
+    const no=(params.get('no') || params.get('q') || '').trim().slice(0,100);
+    return '/mypage.html'+(no?'?'+new URLSearchParams({q:no}):'')+'#receipts';
+  }
+  window.portalGuidance = { documentItems, preparationMessage, historyFor, receiptDestination };
 })();

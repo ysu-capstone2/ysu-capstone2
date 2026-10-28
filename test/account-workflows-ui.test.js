@@ -8,7 +8,7 @@ const initialRevision='2026-10-28T00:00:01.000001+00:00';
 const laterRevision='2026-10-28T00:00:02.000002+00:00';
 const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));};
 
-async function boot(page='mypage'){
+async function boot(page='mypage',{search='',hash=''}={}){
  const elements=new Map(),requests=[],intervals=[],listeners={},forms=new Map();let failList=false,failMutation=false,revision=initialRevision;
  const make=()=>({value:'',textContent:'',hidden:true,disabled:false,dataset:{},handlers:{},attributes:{},classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listenerCounts ||= {};this.listenerCounts[k]=(this.listenerCounts[k]||0)+1;this.handlers[k]=v;},querySelector(){return make();},querySelectorAll(){return [];},closest(){return null;},append(){},prepend(){}});
  function form(kind){
@@ -32,7 +32,7 @@ async function boot(page='mypage'){
  const context={window:{},URL,URLSearchParams,AbortSignal,Date,console,
   crypto:{randomUUID:()=>`99999999-9999-4999-8999-${String(++sequence).padStart(12,'0')}`},
   FormData:class {constructor(f){this.entries=Object.entries(f.fields).map(([k,v])=>[k,v.value]);}[Symbol.iterator](){return this.entries[Symbol.iterator]();}},
-  location:{origin:'https://portal.example',pathname:`/${page}.html`,search:'',hash:'',replace(){},reload(){}},history:{replaceState(){}},
+  location:{origin:'https://portal.example',pathname:`/${page}.html`,search,hash,replace(){},reload(){}},history:{replaceState(){}},
   setInterval(callback){intervals.push(callback);return intervals.length;},clearInterval(){},setTimeout(callback){listeners.timer=callback;return 1;},clearTimeout(){},alert(){},confirm:()=>true,
   document:{body:{dataset:{page}},hidden:false,getElementById:get,querySelectorAll:()=>[],querySelector:make,createElement:make,addEventListener(k,v){listeners[k]=v;}},
   fetch:async(path,options={})=>{
@@ -66,6 +66,11 @@ test('a failed list refresh preserves member input, offers retry and restores it
  assert.equal(container.innerHTML,html);assert.equal(form.fields.text.value,'아직 제출하지 않은 보완 설명');assert.equal(ui.get('receiptLoadError').hidden,false);
  await ui.get('receiptRetry').handlers.click();await flush();
  assert.equal(ui.get('receiptLoadError').hidden,true);assert.equal(ui.forms.get('myReceipts')[0].fields.text.value,'아직 제출하지 않은 보완 설명');
+});
+test('mypage receipt deep links initialize the actual owner-scoped search request',async()=>{
+ const ui=await boot('mypage',{search:'?q=YSU-123',hash:'#receipts'});
+ const request=ui.requests.find(r=>r.path.startsWith('/api/lookup'));
+ assert.equal(new URL(request.path,'https://portal.example').searchParams.get('q'),'YSU-123');assert.equal(ui.get('receiptFilter').value,'YSU-123');
 });
 
 test('member retries preserve their operation ID after a lost response',async()=>{
