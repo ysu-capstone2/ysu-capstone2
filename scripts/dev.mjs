@@ -12,7 +12,6 @@ import auth from '../api/auth.js';
 import admin from '../api/admin.js';
 import adminPage from '../api/admin-page.js';
 import complaints from '../api/complaints.js';
-import privacy from '../api/privacy.js';
 
 const root = new URL('../', import.meta.url);
 const assets = new Map([
@@ -29,7 +28,6 @@ const assets = new Map([
   ['/account.css',['account.css','text/css; charset=utf-8']],
 ]);
 const routes = new Map([['/api/chat', chat], ['/api/guide', guide], ['/api/minwon', minwon], ['/api/status', status], ['/api/counters', counters], ['/api/lookup', lookup], ['/api/reserve', reserve], ['/api/stats', stats], ['/api/auth', auth], ['/api/complaints', complaints], ['/api/admin', admin], ['/admin.html', adminPage], ['/admin', adminPage], ['/api/admin-page', adminPage]]);
-routes.set('/api/privacy', privacy);
 
 http.createServer(async (req, res) => {
   res.status = (code) => { res.statusCode = code; return res; };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import privacy from '../api/privacy.js';
+import privacy from '../api/auth.js';
 process.env.SUPABASE_URL='https://privacy-test.supabase.co';
 process.env.SUPABASE_PUBLISHABLE_KEY='public-test-key';
 const userId='11111111-1111-4111-8111-111111111111', requestId='22222222-2222-4222-8222-222222222222';
@@ -12,7 +12,7 @@ async function call({method='GET',body,guest=false,administrator=false,fetcher}=
     if(url.endsWith('/auth/v1/user'))return json({id:userId,app_metadata:administrator?{role:'admin'}:{},user_metadata:{role:'admin'}});
     calls.push({url,options});return fetcher?fetcher(url,options):json([]);
   };
-  try{await privacy({method,body,query:{},headers:{host:'localhost:3000',origin:'http://localhost:3000','content-type':'application/json',...(guest?{}:{cookie:'portal_access=verified'})}},res);return {...res,calls};}
+  try{await privacy({method,body,query:{resource:'privacy'},headers:{host:'localhost:3000',origin:'http://localhost:3000','content-type':'application/json',...(guest?{}:{cookie:'portal_access=verified'})}},res);return {...res,calls};}
   finally{globalThis.fetch=originalFetch;}
 }
 test('privacy records require login and members only query their own requests',async()=>{

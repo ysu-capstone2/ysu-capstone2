@@ -35,7 +35,7 @@
     const container = $(administrator ? 'adminPrivacyRequests' : 'myPrivacyRequests');
     if (!container) return;
     try {
-      const data = await api('/api/privacy');
+      const data = await api('/api/auth?resource=privacy');
       container.innerHTML = data.requests.map(row => `<article class="receipt-card"><div class="receipt-top"><h3>${row.kind === 'delete' ? '개인정보·계정 삭제 요청' : '저장 정보 확인 요청'}</h3>${badge(row.status)}</div><p class="receipt-meta">${esc(date(row.created_at))}${administrator?'<br>회원 식별자 '+esc(row.user_id):''}</p><p class="receipt-result">${esc(row.message || '추가 내용 없음')}</p><p class="receipt-result">${esc(row.response || '운영팀 확인을 기다리고 있어요.')}</p>${administrator?`<form class="receipt-action-form" data-privacy-id="${esc(row.id)}" data-updated-at="${esc(row.updated_at)}"><label>처리 상태<select name="status" class="form-select">${['접수','처리중','완료'].map(status=>`<option ${status===row.status?'selected':''}>${status}</option>`).join('')}</select></label><label>실제 처리 결과·안내<textarea name="response" class="form-textarea" rows="3" maxlength="2000">${esc(row.response)}</textarea></label><button type="submit" class="btn-primary">처리 안내 저장</button><p role="status" aria-live="polite"></p></form>`:''}</article>`).join('') || '<p class="account-empty">접수된 개인정보 요청이 없습니다.</p>';
     } catch (error) { message('개인정보 요청을 불러오지 못했어요. '+error.message, true); }
   }
@@ -50,7 +50,7 @@
       if (button.disabled) return; button.disabled = true;
       try {
         const body = mutationBody('privacy-request', {kind:$('privacyKind').value, message:$('privacyText').value});
-        await api('/api/privacy', {method:'POST', body:JSON.stringify(body)});
+        await api('/api/auth?resource=privacy', {method:'POST', body:JSON.stringify(body)});
         actionRequests.delete('privacy-request'); form.reset();
         notice.textContent = '요청을 남겼어요. 운영팀이 확인한 후 이 화면에 안내합니다. 제출 즉시 삭제되지는 않습니다.';
         await loadPrivacy();
@@ -62,7 +62,7 @@
       const button = form.querySelector('button'), notice = form.querySelector('[role=status]');
       if (button.disabled) return; button.disabled = true;
       try {
-        const data = await api('/api/privacy', {method:'PATCH', body:JSON.stringify({id:form.dataset.privacyId, updatedAt:form.dataset.updatedAt, ...Object.fromEntries(new FormData(form))})});
+        const data = await api('/api/auth?resource=privacy', {method:'PATCH', body:JSON.stringify({id:form.dataset.privacyId, updatedAt:form.dataset.updatedAt, ...Object.fromEntries(new FormData(form))})});
         form.dataset.updatedAt = data.request.updated_at;
         notice.textContent = '처리 안내를 저장했어요.';
       } catch (error) { notice.textContent = error.message; }

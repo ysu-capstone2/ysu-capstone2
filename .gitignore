@@ -229,6 +229,7 @@ __marimo__/
 !/lib/chat-error.js
 !/lib/gemini-budget.js
 !/lib/portal-chat.js
+!/lib/privacy-requests.js
 
 .vercel
 .env*
