@@ -80,6 +80,13 @@ test('missing Gemini key falls back to a department and database failures stay a
   await assert.rejects(failed.answer(input), (error) => error.status === 503 && !error.message.includes('private'));
 });
 
+test('a fresh empty knowledge base offers consultation without generating unsupported facts', async () => {
+  const service = setup({ request: async () => [] });
+  const value = await service.answer(input);
+  assert.equal(value.isTransferred, true); assert.deepEqual(value.departments, []);
+  assert.equal(service.calls(), 0); assert.equal(service.reserves(), 0);
+});
+
 test('provider errors are not cached or automatically retried', async () => {
   const service = setup({ generate: async () => { const error = new Error('test-key'); error.status = 429; throw error; } });
   await assert.rejects(service.answer(input), (error) => error.status === 429 && !error.message.includes('test-key'));

@@ -24,6 +24,29 @@
   }
   function loginUrl(next = location.pathname+location.search) { return ['/login.html','/signup.html'].includes(location.pathname) && next === location.pathname+location.search ? '/login.html' : '/login.html?next='+encodeURIComponent(next); }
   const auth = window.portalAuth = { user:null, ready:null, error:null, api, loginUrl, notify:message };
+  const actionRequests = new Map();
+  const formDrafts = new Map();
+  function mutationBody(key, body) {
+    const signature=JSON.stringify(body);
+    if(actionRequests.get(key)?.signature!==signature)actionRequests.set(key,{signature,requestId:crypto.randomUUID()});
+    return {...body,requestId:actionRequests.get(key).requestId};
+  }
+  function formKey(form) { return form.dataset.receiptId ? 'admin:'+form.dataset.receiptId : form.dataset.id+':'+form.dataset.complaintAction; }
+  function rememberForm(event) {
+    const form=event.target.closest('[data-complaint-action], [data-receipt-id]');
+    if(form)formDrafts.set(formKey(form),Object.fromEntries(new FormData(form)));
+  }
+  function restoreForms(container) {
+    for(const form of container.querySelectorAll('[data-complaint-action], [data-receipt-id]')){
+      const draft=formDrafts.get(formKey(form));if(!draft)continue;
+      for(const [name,value] of Object.entries(draft)){const field=form.elements.namedItem(name);if(field)field.value=value;}
+      const details=form.closest('details');if(details)details.open=true;
+    }
+  }
+  function listError(prefix,error) {
+    $(prefix+'LoadError').hidden=false;
+    $(prefix+'LoadMessage').textContent=error.message+' 입력 내용과 이전 조회 결과는 유지됩니다.';
+  }
   function renderNav() {
     document.querySelectorAll('[data-admin-only]').forEach(el=>{el.hidden=!auth.user?.isAdmin;});
     document.querySelectorAll('[data-member-only]').forEach(el=>{el.hidden=Boolean(auth.user?.isAdmin);});
@@ -34,7 +57,7 @@
       : `<a href="${esc(loginUrl())}">로그인</a><a href="/signup.html">회원가입</a>`;
     $('logoutButton')?.addEventListener('click', async event => {
       event.target.disabled=true;
-      try { await api('/api/auth',{method:'POST',body:JSON.stringify({action:'logout'})}); location.replace('/login.html'); }
+      try { await api('/api/auth',{method:'POST',body:JSON.stringify({action:'logout'})}); try { sessionStorage.removeItem('portal-reservation-draft'); } catch {} location.replace('/login.html'); }
       catch(error) { message(error.message,true); alert(error.message); event.target.disabled=false; }
     });
   }
@@ -61,14 +84,51 @@
   const next = safeNext();
   if ($('signupLink') && next) $('signupLink').href='/signup.html?next='+encodeURIComponent(next);
   if ($('loginLink') && next) $('loginLink').href=loginUrl(next);
-  // Supabase's default confirmation email may return fragment tokens. Do not persist them in browser storage.
+  let recoveryToken = null;
+  // Keep recovery credentials only in memory and remove them from the URL immediately.
   if (/access_token=|error=|error_code=/.test(location.hash)) {
     const fragment = new URLSearchParams(location.hash.slice(1));
     const error = fragment.has('error') || fragment.has('error_code');
     history.replaceState(null,'',location.pathname+location.search);
     if(error && $('resendArea'))$('resendArea').hidden=false;
-    message(error ? '링크가 만료되었거나 이미 사용됐어요. 이미 인증했다면 로그인해 주세요. 인증하지 못했다면 새 메일을 요청하고 가장 최근 링크만 눌러 주세요.' : '이메일 인증을 완료했어요. 이메일과 비밀번호로 로그인해 주세요.',Boolean(error));
+    if (!error && fragment.get('type') === 'recovery' && fragment.get('access_token') && $('recoveryForm')) {
+      recoveryToken = fragment.get('access_token');
+      $('loginForm').hidden = true; $('recoveryForm').hidden = false;
+      $('resendArea').hidden = true; $('recoverPasswordButton').hidden = true;
+      message('새 비밀번호를 입력해 주세요.');
+    } else message(error ? '링크가 만료되었거나 이미 사용됐어요. 이미 인증했다면 로그인해 주세요. 인증하지 못했다면 새 메일을 요청하고 가장 최근 링크만 눌러 주세요.' : '이메일 인증을 완료했어요. 이메일과 비밀번호로 로그인해 주세요.',Boolean(error));
   }
+  let recoverTimer = null;
+  $('recoveryBackButton')?.addEventListener('click', () => {
+    recoveryToken=null; $('recoveryForm').reset(); $('recoveryForm').hidden=true; $('loginForm').hidden=false; $('recoverPasswordButton').hidden=false; $('resendArea').hidden=false; message('새 재설정 메일을 요청하거나 로그인해 주세요.');
+  });
+  $('recoverPasswordButton')?.addEventListener('click', async event => {
+    const email = $('email'), button = event.target;
+    if (button.disabled) return;
+    if (!email?.value.trim() || !email.checkValidity()) { message('이메일 입력란에 가입한 이메일을 입력해 주세요.', true); email?.focus(); return; }
+    button.disabled = true;
+    const startCooldown = seconds => {
+      const until = Date.now() + seconds * 1000;
+      const update = () => { const left = Math.max(0, Math.ceil((until - Date.now()) / 1000)); button.disabled = left > 0; button.textContent = left ? `재설정 메일 (${left}초 후)` : '비밀번호를 잊으셨나요?'; if (!left) { clearInterval(recoverTimer); recoverTimer = null; } };
+      recoverTimer = setInterval(update, 1000); update();
+    };
+    try { const data = await api('/api/auth', { method:'POST', body:JSON.stringify({ action:'recover', email:email.value }) }); message(data.message); startCooldown(data.retryAfter || 60); }
+    catch (error) { message(error.message, true); if (error.status === 429) startCooldown(error.retryAfter || 60); }
+    finally { if (!recoverTimer) button.disabled = false; }
+  });
+  $('recoveryForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if ($('newPassword').value !== $('newPasswordConfirm').value) return message('비밀번호가 일치하지 않습니다.', true);
+    if (!recoveryToken) return message('새 비밀번호 재설정 메일을 요청해 주세요.', true);
+    const button = event.target.querySelector('button[type=submit]'); if (button.disabled) return; button.disabled = true;
+    try {
+      const data = await api('/api/auth', {method:'POST',body:JSON.stringify({action:'reset-password',accessToken:recoveryToken,password:$('newPassword').value})});
+      recoveryToken = null; event.target.reset(); event.target.hidden = true; $('loginForm').hidden = false; $('recoverPasswordButton').hidden = false;
+      auth.user=null; auth.error=null; renderNav();
+      message(data.message);
+    } catch (error) { message(error.message + ' 링크가 만료됐다면 로그인 화면에서 새 재설정 메일을 요청해 주세요.', true); }
+    finally { button.disabled = false; }
+  });
   for (const action of ['login','signup']) {
     $(action+'Form')?.addEventListener('submit',async event => {
       event.preventDefault();
@@ -100,23 +160,45 @@
     finally{if(!resendTimer)button.disabled=false;}
   });
   let receipts=[];
+  let receiptPage=1, receiptRequest=0;
+  const localDateTime = value => { if(!value)return '';const d=new Date(value);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); };
+  const supplementsView = values => (values || []).map(item=>`<div class="receipt-result"><strong>추가 제출 · ${esc(date(item.submittedAt))}</strong><br>${esc(item.text)}</div>`).join('');
+  function pager(prefix, pagination) {
+    $(prefix+'Prev').disabled=pagination.page<=1;
+    $(prefix+'Next').disabled=!pagination.hasNext;
+    $(prefix+'Page').textContent=pagination.page+'페이지';
+  }
+  function receiptActions(c) {
+    const editable=['접수','보완요청'].includes(c.processStatus);
+    return `${c.processStatus==='보완요청'?`<form class="receipt-action-form" data-complaint-action="supplement" data-id="${esc(c.id)}"><label>보완 내용<textarea name="text" class="form-textarea" required maxlength="2000" rows="3" placeholder="담당자가 요청한 추가 내용을 입력해 주세요."></textarea></label><button class="btn-primary" type="submit">보완 내용 제출</button><p class="admin-mini">제출하면 처리 중으로 변경됩니다. 첨부파일은 지원하지 않습니다.</p></form>`:''}${editable?`<details class="receipt-options"><summary>예약 변경·취소</summary><form class="receipt-action-form" data-complaint-action="reschedule" data-id="${esc(c.id)}"><label>상담 희망 일시<input name="preferredAt" type="datetime-local" class="text-input" required step="60" min="${localDateTime(Date.now()+60000)}" max="${localDateTime(Date.now()+90*86400000)}" value="${localDateTime(c.preferredAt)}"></label><button class="btn-secondary" type="submit">희망 일시 변경</button><p class="admin-mini">기기 시간 기준 · 담당자 협의 후 확정됩니다.</p></form><button type="button" class="btn-secondary" data-cancel-complaint="${esc(c.id)}">예약 취소</button></details>`:''}`;
+  }
   function receiptView(c) {
-    return `<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaintNo)}</span>${badge(c.processStatus)}</div><h3>${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.deptName)} · ${esc(c.consultType)}<br>접수 ${date(c.createdAt)} · 담당자 ${esc(c.officerName)}${c.dueDate ? '<br>처리 예정일 '+esc(c.dueDate) : ''}</p><p class="receipt-result">${esc(c.result || '담당자 확인을 기다리고 있어요.')}</p></article>`;
+    return `<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaintNo)}</span>${badge(c.processStatus)}</div><h3>${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.deptName)} · ${esc(c.consultType)}<br>접수 ${date(c.createdAt)} · 담당자 ${esc(c.officerName)}${c.preferredAt ? '<br>상담 희망 '+esc(date(c.preferredAt))+' (협의 후 확정)' : ''}${c.dueDate ? '<br>처리 예정일 '+esc(c.dueDate) : ''}</p><p class="receipt-result">${esc(c.result || '담당자 확인을 기다리고 있어요.')}</p>${supplementsView(c.supplements)}${receiptActions(c)}</article>`;
   }
   function renderReceipts() {
-    const q=$('receiptFilter').value.trim().toLowerCase();
-    const rows=receipts.filter(c=>(c.complaintNo+' '+c.summary).toLowerCase().includes(q));
-    $('myReceipts').innerHTML=rows.map(receiptView).join('') || '<div class="account-empty">접수 내역이 없어요.<br><a href="/?tab=chat">민원 상담 시작하기 →</a></div>';
+    $('myReceipts').innerHTML=receipts.map(receiptView).join('') || '<div class="account-empty">접수 내역 또는 검색 결과가 없어요.<br><a href="/?tab=chat">민원 상담 시작하기 →</a></div>';
+    restoreForms($('myReceipts'));
   }
   async function loadReceipts() {
-    try { receipts=(await api('/api/lookup')).complaints; renderReceipts(); }
-    catch(error) { $('myReceipts').textContent=error.message; }
+    const version=++receiptRequest;
+    $('receiptPrev').disabled=true; $('receiptNext').disabled=true;
+    $('receiptLoadError').hidden=true;$('myReceipts').setAttribute('aria-busy','true');
+    try {
+      const data=await api('/api/lookup?'+new URLSearchParams({page:String(receiptPage),q:$('receiptFilter').value.trim(),status:$('receiptStatus').value}));
+      if(version!==receiptRequest)return;
+      receipts=data.complaints; renderReceipts(); pager('receipt',data.pagination);
+    } catch(error) { if(version===receiptRequest)listError('receipt',error); }
+    finally {if(version===receiptRequest)$('myReceipts').setAttribute('aria-busy','false');}
   }
+  let ticketVersion=0,ticketMutation=false;
   async function loadTickets() {
+    const version=++ticketVersion;
     try {
       const data=await api('/api/counters?mine=1');
+      if(version!==ticketVersion)return;
       $('myTickets').innerHTML=data.tickets.map(t=>`<article class="receipt-card"><div class="receipt-top"><h3>${esc(data.counters.find(c=>c.id===t.counter_id)?.counterName || '창구')}</h3>${badge(t.status)}</div><p class="receipt-meta">내 번호 <strong>${t.ticket_no}번</strong> · 발급 ${date(t.created_at)}</p>${t.status==='대기'?`<button type="button" class="btn-secondary" data-cancel-ticket="${t.id}">번호표 취소</button>`:''}</article>`).join('') || '<p class="account-empty">현재 대기 중인 번호표가 없어요.</p>';
-    } catch(error) { $('myTickets').textContent=error.message; }
+      $('myTicketStatus').textContent='마지막 확인 '+date(Date.now())+' · 30초마다 확인합니다.';
+    } catch(error) { if(version===ticketVersion)$('myTicketStatus').textContent=error.message+' 이전 번호표를 표시하고 있어요. 새로고침으로 다시 확인해 주세요.'; }
   }
   if (document.body.dataset.page==='mypage') (async()=>{
     if (!await protectedPage()) return;
@@ -125,49 +207,95 @@
     await Promise.all([loadReceipts(),loadTickets()]);
     $('myTickets').addEventListener('click',async event=>{
       const button=event.target.closest('[data-cancel-ticket]'); if(!button)return;
-      button.disabled=true;
+      if(button.disabled||ticketMutation)return;button.disabled=true;ticketMutation=true;ticketVersion++;
       try {await api('/api/counters',{method:'POST',body:JSON.stringify({action:'cancel',ticketId:button.dataset.cancelTicket})});message('대기 번호표를 취소했어요.');await loadTickets();}
       catch(error){message(error.message,true);await loadTickets();}
-      finally{button.disabled=false;}
+      finally{button.disabled=false;ticketMutation=false;}
     });
-    $('receiptFilter').addEventListener('input',renderReceipts);
+    let searchTimer;
+    $('receiptFilter').addEventListener('input',()=>{clearTimeout(searchTimer);$('receiptPrev').disabled=true;$('receiptNext').disabled=true;searchTimer=setTimeout(()=>{receiptPage=1;loadReceipts();},300);});
+    $('receiptStatus').addEventListener('change',()=>{clearTimeout(searchTimer);receiptPage=1;loadReceipts();});
+    $('receiptRetry').addEventListener('click',loadReceipts);
+    $('myReceipts').addEventListener('input',rememberForm);
+    $('myReceipts').addEventListener('change',rememberForm);
+    $('receiptPrev').addEventListener('click',()=>{if(receiptPage>1){receiptPage--;loadReceipts();}});
+    $('receiptNext').addEventListener('click',()=>{receiptPage++;loadReceipts();});
+    $('myReceipts').addEventListener('submit',async event=>{
+      const form=event.target.closest('[data-complaint-action]'); if(!form)return;event.preventDefault();
+      const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
+      try {
+        const body={id:form.dataset.id,action:form.dataset.complaintAction,...Object.fromEntries(new FormData(form))};
+        if(body.preferredAt)body.preferredAt=new Date(body.preferredAt).toISOString();
+        const key=formKey(form);
+        await api('/api/complaints',{method:'PATCH',body:JSON.stringify(mutationBody(key,body))});
+        actionRequests.delete(key);formDrafts.delete(key);
+        message(body.action==='supplement'?'보완 내용을 제출했어요.':'상담 희망 일시를 변경했어요.');await loadReceipts();
+      } catch(error){message(error.message,true);}finally{button.disabled=false;}
+    });
+    $('myReceipts').addEventListener('click',async event=>{
+      const button=event.target.closest('[data-cancel-complaint]');if(!button||button.disabled)return;
+      if(!confirm('이 상담 예약을 취소할까요?'))return;
+      button.disabled=true;
+      const key=button.dataset.cancelComplaint+':cancel';
+      try{await api('/api/complaints',{method:'PATCH',body:JSON.stringify(mutationBody(key,{id:button.dataset.cancelComplaint,action:'cancel'}))});actionRequests.delete(key);message('예약을 취소했어요.');await loadReceipts();}
+      catch(error){message(error.message,true);}finally{button.disabled=false;}
+    });
     $('refreshReceipts').addEventListener('click',()=>Promise.all([loadReceipts(),loadTickets()]));
+    setInterval(()=>{if(!document.hidden&&!ticketMutation)loadTickets();},30000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!ticketMutation)loadTickets();});
     $('profileForm').addEventListener('submit',async event=>{
       event.preventDefault(); const button=event.target.querySelector('button');button.disabled=true;
       try { const data=await api('/api/auth',{method:'PATCH',body:JSON.stringify({name:$('profileName').value,phone:$('profilePhone').value})}); auth.user=data.user;$('welcomeName').textContent=data.user.name+'님, 반가워요'; message('내 정보를 저장했어요.'); }
       catch(error) { message(error.message,true); } finally {button.disabled=false;}
     });
   })();
-  let adminRows=[];
+  let adminRows=[], adminPage=1, adminRequest=0;
+  const counterOperations=new Map();
+  let counterReadVersion=0;
   function renderAdminReceipts() {
-    const q=$('adminFilter').value.trim().toLowerCase();
-    $('adminReceipts').innerHTML=adminRows.filter(c=>(c.complaint_no+' '+c.citizen_name+' '+c.summary).toLowerCase().includes(q)).map(c=>`<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaint_no)}</span>${badge(c.process_status)}</div><h3>${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.citizen_name)} · ${esc(c.citizen_tel)} · ${esc(c.dept_name)} · ${esc(c.consult_type)}<br>${date(c.created_at)}</p><form class="admin-form" data-receipt-id="${esc(c.id)}"><div class="form-field"><label>처리 상태<select class="form-select" name="status">${['접수','처리중','보완요청','완료'].map(s=>`<option ${s===c.process_status?'selected':''}>${s}</option>`).join('')}</select></label></div><div class="form-field"><label>담당자<input class="text-input" name="officer" maxlength="50" value="${esc(c.officer_name)}" placeholder="담당자 이름"></label></div><div class="form-field span-all"><label>안내·처리 결과<textarea name="result" class="form-textarea" maxlength="2000" rows="2">${esc(c.result)}</textarea></label></div><button class="btn-primary span-all">변경 내용 저장</button><p class="admin-mini span-all" role="status"></p></form></article>`).join('') || '<p class="account-empty">접수 내역이 없습니다.</p>';
+    $('adminReceipts').innerHTML=adminRows.map(c=>`<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaint_no)}</span>${badge(c.process_status)}</div><h3>${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.citizen_name)} · ${esc(c.citizen_tel)} · ${esc(c.dept_name)} · ${esc(c.consult_type)}<br>${date(c.created_at)}${c.preferred_at?'<br>상담 희망 '+esc(date(c.preferred_at))+' (협의 후 확정)':''}</p>${supplementsView(c.supplements)}${c.process_status==='취소'?'<p class="admin-mini">사용자가 취소한 접수입니다.</p>':`<form class="admin-form" data-receipt-id="${esc(c.id)}" data-updated-at="${esc(c.updated_at)}"><div class="form-field"><label>처리 상태<select class="form-select" name="status">${['접수','처리중','보완요청','완료'].map(s=>`<option ${s===c.process_status?'selected':''}>${s}</option>`).join('')}</select></label></div><div class="form-field"><label>담당자<input class="text-input" name="officer" maxlength="50" value="${esc(c.officer_name)}" placeholder="담당자 이름"></label></div><div class="form-field span-all"><label>안내·처리 결과<textarea name="result" class="form-textarea" maxlength="2000" rows="2">${esc(c.result)}</textarea></label></div><button class="btn-primary span-all">변경 내용 저장</button><p class="admin-mini span-all" role="status"></p></form>`}</article>`).join('') || '<p class="account-empty">접수 내역 또는 검색 결과가 없습니다.</p>';
+    restoreForms($('adminReceipts'));
   }
   async function loadAdmin() {
+    const version=++adminRequest;
+    $('adminPrev').disabled=true;$('adminNext').disabled=true;
+    $('adminLoadError').hidden=true;$('adminReceipts').setAttribute('aria-busy','true');
     try {
-      const data=await api('/api/stats'); adminRows=data.complaints;
-      $('adminMetrics').innerHTML=[['전체 접수',data.summary.totalComplaints],['접수 대기',data.summary.pending],['처리 중·보완',data.summary.processing],['처리 완료',data.summary.completed]].map(([label,value])=>`<div class="gov-metric-card"><div class="gov-metric-lbl">${label}</div><div class="gov-metric-val">${value}건</div></div>`).join('');
+      const data=await api('/api/stats?'+new URLSearchParams({page:String(adminPage),q:$('adminFilter').value.trim(),status:$('adminStatus').value}));
+      if(version!==adminRequest)return;
+      adminRows=data.complaints;pager('admin',data.pagination);
+      $('adminMetrics').innerHTML=[['전체 접수',data.summary.totalComplaints],['접수 대기',data.summary.pending],['처리 중·보완',data.summary.processing],['처리 완료',data.summary.completed],['취소',data.summary.cancelled ?? 0]].map(([label,value])=>`<div class="gov-metric-card"><div class="gov-metric-lbl">${label}</div><div class="gov-metric-val">${value}건</div></div>`).join('');
       renderAdminReceipts();
-      $('adminChats').innerHTML=data.recentSessions.map(c=>`<article class="receipt-card"><div class="receipt-top"><p class="receipt-meta">${date(c.created_at)}</p>${badge(c.status)}</div><h3>${esc(c.query)}</h3></article>`).join('')||'<p class="account-empty">저장된 상담 기록이 없습니다.</p>';
-      await loadAdminCounters();
-    } catch(error) { message(error.message,true); }
+      $('adminChats').innerHTML=data.recentSessions.map(c=>`<article class="receipt-card"><div class="receipt-top"><p class="receipt-meta">${date(c.created_at)}</p>${badge(c.status)}</div><h3>${esc(c.query)}</h3><details class="receipt-options"><summary>답변 보기</summary><p class="receipt-result">${esc(c.answer || '저장된 답변이 없습니다.')}</p></details></article>`).join('')||'<p class="account-empty">저장된 상담 기록이 없습니다.</p>';
+      loadAdminCounters().catch(error=>message(error.message,true));
+    } catch(error) { if(version===adminRequest)listError('admin',error); }
+    finally{if(version===adminRequest)$('adminReceipts').setAttribute('aria-busy','false');}
   }
   async function loadAdminCounters() {
+    const version=++counterReadVersion;
     const data=await api('/api/counters');
-    $('adminCounters').innerHTML=data.counters.map(c=>`<article class="admin-counter-card"><div class="receipt-top"><h3>${esc(c.orgName)} · ${esc(c.counterName)}</h3>${badge(c.isOpen?'운영 중':'운영 중지')}</div><p class="admin-mini">${esc(c.location)}</p><div class="admin-counter-numbers"><span>호출 <strong>${c.currentCallingNo ?? '—'}</strong>번</span><span>대기 <strong>${c.waitingCount}</strong>명</span></div><div class="counter-actions"><button class="btn-primary" data-counter-action="next" data-id="${c.id}" ${c.isOpen?'':'disabled'}>다음 번호 호출</button><button class="btn-secondary" data-counter-action="toggle" data-id="${c.id}" data-open="${!c.isOpen}">${c.isOpen?'운영 중지':'운영 시작'}</button></div><p class="counter-update">마지막 변경 ${date(c.updatedAt)}</p></article>`).join('') || '<p class="account-empty">등록된 창구가 없습니다. 위에서 실제 운영할 창구를 등록해 주세요.</p>';
+    if(version!==counterReadVersion)return;
+    $('adminCounters').innerHTML=data.counters.map(c=>`<article class="admin-counter-card"><div class="receipt-top"><h3>${esc(c.orgName)} · ${esc(c.counterName)}</h3>${badge(c.isOpen?'운영 중':'운영 중지')}</div><p class="admin-mini">${esc(c.location)}</p><div class="admin-counter-numbers"><span>호출 <strong>${c.currentCallingNo ?? '—'}</strong>번</span><span>대기 <strong>${c.waitingCount}</strong>명</span></div><div class="counter-actions"><button class="btn-primary" data-counter-action="next" data-id="${c.id}" data-updated-at="${esc(c.updatedAt)}" ${c.isOpen&&!counterOperations.get(c.id)?.busy?'':'disabled'}>${counterOperations.has(c.id)?'호출 결과 다시 확인':'다음 번호 호출'}</button><button class="btn-secondary" data-counter-action="toggle" data-id="${c.id}" data-open="${!c.isOpen}">${c.isOpen?'운영 중지':'운영 시작'}</button></div><p class="counter-update">마지막 변경 ${date(c.updatedAt)}</p></article>`).join('') || '<p class="account-empty">등록된 창구가 없습니다. 위에서 실제 운영할 창구를 등록해 주세요.</p>';
   }
   if (document.body.dataset.page==='admin') (async()=>{
     if (!await protectedPage(true)) return;
     $('adminContent').hidden=false; await loadAdmin();
     $('refreshAdmin').addEventListener('click',loadAdmin);
-    $('adminFilter').addEventListener('input',renderAdminReceipts);
+    let searchTimer;
+    $('adminFilter').addEventListener('input',()=>{clearTimeout(searchTimer);$('adminPrev').disabled=true;$('adminNext').disabled=true;searchTimer=setTimeout(()=>{adminPage=1;loadAdmin();},300);});
+    $('adminStatus').addEventListener('change',()=>{clearTimeout(searchTimer);adminPage=1;loadAdmin();});
+    $('adminRetry').addEventListener('click',loadAdmin);
+    $('adminReceipts').addEventListener('input',rememberForm);
+    $('adminReceipts').addEventListener('change',rememberForm);
+    $('adminPrev').addEventListener('click',()=>{if(adminPage>1){adminPage--;loadAdmin();}});
+    $('adminNext').addEventListener('click',()=>{adminPage++;loadAdmin();});
     document.querySelectorAll('[data-admin-tab]').forEach(button=>button.addEventListener('click',()=>{
       document.querySelectorAll('[data-admin-tab]').forEach(b=>{const selected=b===button;b.setAttribute('aria-pressed',String(selected));$('admin-'+b.dataset.adminTab).hidden=!selected;});
     }));
     $('adminReceipts').addEventListener('submit',async event=>{
       const form=event.target.closest('[data-receipt-id]'); if (!form) return;event.preventDefault();
       const button=form.querySelector('button');button.disabled=true;
-      try {await api('/api/admin',{method:'PATCH',body:JSON.stringify({id:form.dataset.receiptId,...Object.fromEntries(new FormData(form))})});message('처리 상태를 저장했어요.');await loadAdmin();}
+      try {await api('/api/admin',{method:'PATCH',body:JSON.stringify({id:form.dataset.receiptId,updatedAt:form.dataset.updatedAt,...Object.fromEntries(new FormData(form))})});formDrafts.delete(formKey(form));message('처리 상태를 저장했어요.');await loadAdmin();}
       catch(error){form.querySelector('[role=status]').textContent=error.message;}finally{button.disabled=false;}
     });
     $('counterForm').addEventListener('submit',async event=>{
@@ -176,9 +304,27 @@
       catch(error){message(error.message,true);}finally{button.disabled=false;}
     });
     $('adminCounters').addEventListener('click',async event=>{
-      const button=event.target.closest('[data-counter-action]');if(!button)return;button.disabled=true;
-      try {await api('/api/counters',{method:'PATCH',body:JSON.stringify({action:button.dataset.counterAction,counterId:button.dataset.id,isOpen:button.dataset.open==='true'})});await loadAdminCounters();}
-      catch(error){message(error.message,true);}finally{button.disabled=false;}
+      const button=event.target.closest('[data-counter-action]');if(!button||button.disabled)return;
+      const id=button.dataset.id,action=button.dataset.counterAction;
+      if(action==='next'&&counterOperations.get(id)?.busy)return;
+      button.disabled=true;
+      let pending;
+      if(action==='next'){
+        pending=counterOperations.get(id)||{requestId:crypto.randomUUID(),updatedAt:button.dataset.updatedAt};
+        pending.busy=true;counterOperations.set(id,pending);counterReadVersion++;
+      }
+      try {
+        await api('/api/counters',{method:'PATCH',body:JSON.stringify({action,counterId:id,isOpen:button.dataset.open==='true',...(pending?{requestId:pending.requestId,updatedAt:pending.updatedAt}:{})})});
+        if(pending)counterOperations.delete(id);
+        message(action==='next'?'다음 번호 호출을 처리했어요.':'창구 운영 상태를 변경했어요.');
+        await loadAdminCounters().catch(error=>message('변경은 처리됐지만 최신 현황을 확인하지 못했어요. '+error.message,true));
+      } catch(error){
+        if(pending&&error.status===409)counterOperations.delete(id);
+        message(error.message+(pending&&error.status!==409?' 호출 결과 다시 확인을 누르면 같은 요청의 결과를 확인합니다.':''),true);
+        if(pending)pending.busy=false;
+        if(error.status===409)await loadAdminCounters().catch(()=>{});
+        else if(pending)button.textContent='호출 결과 다시 확인';
+      } finally{if(pending)pending.busy=false;button.disabled=false;}
     });
     setInterval(()=>{if(!document.hidden)loadAdminCounters().catch(error=>message(error.message,true));},30000);
   })();

@@ -3,16 +3,22 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 const source=await readFile(new URL('../account.js',import.meta.url),'utf8');
-async function boot({user=null,page='home',outage=false,resend=false,throttled=false}={}) {
+async function boot({user=null,page='home',outage=false,resend=false,throttled=false,recovery=false,hash=''}={}) {
  const elements={};
  const element=()=>({innerHTML:'',textContent:'',hidden:true,classList:{toggle(){}},setAttribute(){},addEventListener(type,callback){this.handlers ||= {};this.handlers[type]=callback;},append(){},prepend(){}});
  elements.accountNav=element();elements.accountMessage=element();
  if(resend){elements.resendEmailButton=element();elements.resendEmailButton.disabled=false;elements.email={value:'member@example.com',checkValidity:()=>true};}
+ if(recovery){
+  for(const id of ['loginForm','recoveryForm','recoverPasswordButton','recoveryBackButton','resendArea','newPassword','newPasswordConfirm'])elements[id]=element();
+  elements.newPassword.value=elements.newPasswordConfirm.value='fixture-password-123';
+  elements.recoveryForm.querySelector=()=>elements.submitButton ||= element();
+  elements.recoveryForm.reset=()=>{};
+ }
  const adminOnly=[element()],memberOnly=[element()];let destination=null;
  const requests=[];
  const context={window:{},URL,URLSearchParams,AbortSignal,console,
-  location:{origin:'https://portal.example',pathname:page==='mypage'?'/mypage.html':'/',search:'',hash:'',replace(value){destination=value;},reload(){}},
-  history:{replaceState(){}},setInterval(){return 1;},clearInterval(){},alert(){},
+  location:{origin:'https://portal.example',pathname:page==='mypage'?'/mypage.html':'/',search:'',hash,replace(value){destination=value;},reload(){}},
+  history:{replaceState(state,title,value){requests.push({cleanURL:value});}},setInterval(){return 1;},clearInterval(){},alert(){},
   fetch:async(path,options)=>{
    if(options?.method==='POST'){requests.push(JSON.parse(options.body));return {ok:!throttled,status:throttled?429:200,headers:{get:()=>throttled?'120':null},json:async()=>throttled?{ok:false,message:'메일 요청이 많아요.'}:{ok:true,message:'미인증 계정이라면 새 메일을 보냈어요.',retryAfter:60}};}
    return {ok:!outage,status:outage?503:200,json:async()=>outage?{ok:false,message:'일시 장애'}:{ok:true,user}};
@@ -47,4 +53,19 @@ test('confirmation resend sends only the email once and shows a cooldown',async(
 test('confirmation resend honors the provider cooldown and preserves the explanation',async()=>{
  const result=await boot({resend:true,throttled:true});const button=result.elements.resendEmailButton;
  await button.handlers.click({target:button});assert.equal(button.disabled,true);assert.match(button.textContent,/120초 후/);assert.match(result.elements.accountMessage.textContent,/요청이 많아요/);
+});
+
+test('recovery strips URL credentials, shows its form and sends the token only with the password update',async()=>{
+ const result=await boot({recovery:true,hash:'#type=recovery&access_token=fixture-recovery&refresh_token=never-store-this'});
+ assert.equal(result.elements.loginForm.hidden,true);assert.equal(result.elements.recoveryForm.hidden,false);
+ assert.deepEqual(result.requests,[{cleanURL:'/'}]);
+ await result.elements.recoveryForm.handlers.submit({preventDefault(){},target:result.elements.recoveryForm});
+ assert.deepEqual(result.requests[1],{action:'reset-password',accessToken:'fixture-recovery',password:'fixture-password-123'});
+ assert.equal(result.elements.recoveryForm.hidden,true);assert.equal(result.elements.loginForm.hidden,false);
+ assert.equal(result.context.window.portalAuth.user,null);
+});
+
+test('expired recovery links expose a new request path and never show the password update form',async()=>{
+ const result=await boot({recovery:true,hash:'#error=access_denied&error_code=otp_expired'});
+ assert.equal(result.elements.recoveryForm.hidden,true);assert.equal(result.elements.resendArea.hidden,false);assert.match(result.elements.accountMessage.textContent,/만료/);
 });
