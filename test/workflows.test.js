@@ -35,6 +35,9 @@ test('DB bootstrap includes all migrations, adopts legacy schema, and skips reco
  const rerun=planBootstrap({migrations,tables,columns:['request_id'],hasCancel:true,applied:migrations.map(m=>m.version)});assert.doesNotMatch(rerun,/add column/);
  assert.throws(()=>planBootstrap({migrations,tables:['queue_tickets']}),/Partial/);
  assert.throws(()=>planBootstrap({migrations,tables,columns:['request_id']}),/Partial/);
+ const referenceUpgrade=planBootstrap({migrations,tables:[...tables,'department_info'],columns:['request_id'],hasCancel:true});
+ assert.ok(referenceUpgrade.indexOf('add column if not exists category_code')<referenceUpgrade.indexOf('insert into public.department_info'));
+ assert.match(referenceUpgrade,/coalesce\(window_location/);assert.match(referenceUpgrade,/on conflict \(dept_code\) do nothing/);
 });
 
 test('administrator search and pagination query the complete data set with safe literals',async()=>{

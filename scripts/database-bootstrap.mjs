@@ -12,6 +12,21 @@ export function planBootstrap({ migrations, tables, columns = [], hasCancel = fa
     const adopted = existing && (name === 'member_complaints_and_admin' || (name === 'complaint_retry_and_ticket_cancel' && hasCancel));
     if (!adopted) {
       let text = sql.replace(/^\s*begin;\s*/i, '').replace(/commit;\s*$/i, '');
+      if (name === 'complete_erd_and_processes' && tables.includes('department_info')) {
+        // The deployed legacy reference table has window_location instead of location.
+        // Extend it before the ERD migration references the new columns; retain existing department records.
+        parts.push(`alter table public.department_info add column if not exists category_code text not null default '일반행정';
+alter table public.department_info add column if not exists jurisdiction text not null default '';
+do $$ begin
+ if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='department_info' and column_name='location') then
+  alter table public.department_info add column location text not null default '';
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='department_info' and column_name='window_location') then
+   execute 'update public.department_info set location=coalesce(window_location,'''')';
+  end if;
+ end if;
+end $$;`);
+        text = text.replace(/on conflict \(dept_code\) do update set[\s\S]*?;/, 'on conflict (dept_code) do nothing;');
+      }
       if (!existing && tables.includes('chat_session') && name === 'member_complaints_and_admin') {
         text = text.replace('create table public.chat_session (', 'create table if not exists public.chat_session (');
         text = text.replace('grant usage,select on sequence public.chat_session_id_seq to service_role;', () => "do $$ declare seq text; begin seq:=pg_get_serial_sequence('public.chat_session','id'); if seq is not null then execute format('grant usage,select on sequence %s to service_role',seq); end if; end $$;");

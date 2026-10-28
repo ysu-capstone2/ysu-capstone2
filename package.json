@@ -6,7 +6,8 @@
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "test": "node --test",
     "test:live": "node --env-file=.env.local scripts/check-live.mjs",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "setup:demo": "node --env-file=.env.local scripts/setup-demo-counter.mjs"
   },
   "engines": {
     "node": ">=22"

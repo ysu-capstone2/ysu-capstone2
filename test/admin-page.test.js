@@ -26,6 +26,6 @@ test('authentication outage does not serve administrator HTML',async()=>{
 test('production output excludes administrator template, source, account credentials and environment files',async()=>{
  execFileSync(process.execPath,['scripts/build.mjs']);
  const {readdir}=await import('node:fs/promises');const files=await readdir('public');
- assert.ok(files.includes('index.html'));assert.ok(!files.includes('admin.html'));assert.equal(files.length,10);
+ assert.ok(files.includes('index.html'));assert.ok(files.includes('privacy.html'));assert.ok(files.includes('portal-guidance.js'));assert.ok(!files.includes('admin.html'));assert.equal(files.length,12);
  const config=JSON.parse(await readFile('vercel.json','utf8'));assert.equal(config.outputDirectory,'public');assert.ok(config.rewrites.some(r=>r.source==='/admin.html'&&r.destination==='/api/admin-page'));
 });
