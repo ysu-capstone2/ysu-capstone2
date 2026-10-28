@@ -1,5 +1,7 @@
 # YSU Capstone 2 · 민원 길잡이
 
+팀의 현재 수정·검증·운영 반영 상태는 [팀 점검 체크리스트](IMPLEMENTATION-CHECKLIST.md)에서 확인하세요.
+
 기존 행복구청 민원 포털(`/`)의 UI·예약·조회·통계 기능과 전국 공통 민원 길잡이(`/guide.html`)를 함께 제공합니다. 원격 `hong` 및 `main`의 변경을 통합했습니다.
 
 민원 길잡이는 전국 공통 민원 안내 챗봇입니다. FAQ → 저장된 답변 → Gemini 순서로 답변하여 새 AI 호출을 줄입니다. 민원 길잡이 자체는 실제 민원 접수나 개인 처리 상태 조회를 수행하지 않습니다. 포털의 접수·조회·번호표와 관리자 운영 현황은 Supabase Auth 및 PostgreSQL에 연결됩니다.
@@ -62,7 +64,7 @@ FAQ는 2026-10-21에 공식 창구를 참고해 작성한 일반 안내입니다
 
    공개용 키에는 publishable 또는 기존 anon 키를 사용합니다. service_role/secret 키는 공개용 항목이나 브라우저 코드에 넣지 않습니다. `.env.local`은 Git에서 제외됩니다.
 
-3. 새 프로젝트에서는 `supabase/migrations/`의 SQL을 파일명 순서대로 SQL Editor에서 실행하거나, CLI로 프로젝트를 연결하고 `supabase db push`로 적용합니다. 현재 연결한 프로젝트에는 적용과 이력 기록을 완료했습니다.
+3. 새 프로젝트에서는 `supabase/migrations/`의 SQL을 파일명 순서대로 SQL Editor에서 실행하거나, CLI로 프로젝트를 연결하고 `supabase db push`로 적용합니다. 현재 프로젝트의 실제 적용 여부와 누락 버전은 [팀 점검 체크리스트](IMPLEMENTATION-CHECKLIST.md)를 확인하세요. 코드 병합만으로 DB 마이그레이션이 적용되지는 않습니다.
 4. Authentication → URL Configuration의 Site URL을 로컬에서는 `http://localhost:3000/login.html`, 배포에서는 실제 배포 주소의 `/login.html`로 설정하고 Redirect URLs에도 해당 주소를 추가합니다. 현재 운영 주소는 `https://ysu-capstone2-beta.vercel.app/login.html`입니다. 서버는 `PORTAL_URL` 또는 Vercel 운영 도메인 설정을 기준으로 인증 복귀 주소를 전달합니다. 별도 도메인을 사용하면 `PORTAL_URL=https://실제사이트주소`를 설정하세요. 기본 인증 메일을 이용하며, 이메일 확인 후 이메일·비밀번호로 로그인합니다. 프로젝트의 이메일 인증 설정은 앱에서 임의로 끄지 않습니다.
 5. 일반 사용자에게 인증 메일을 보내려면 Authentication → Email의 SMTP 설정을 확인합니다. Supabase 기본 SMTP는 허용된 수신자와 발송량이 제한됩니다. [공식 SMTP 안내](https://supabase.com/docs/guides/auth/auth-smtp)를 참고하세요. 확인 메일이 도착하는 전체 흐름은 본인 이메일로 별도 검증해야 합니다.
 6. 서버를 재시작합니다: `npm run dev`.
