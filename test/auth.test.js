@@ -142,6 +142,8 @@ test('team leader statistics compute self-resolution rate, low-confidence keywor
   return response(200,[{id:1,query:'불법건축물 철거 분쟁 조정',status:'상담연계대기',confidence_score:35,created_at:'2026-10-23T14:00:00Z'},{id:2,query:'불법건축물 신고 및 일조권 분쟁',status:'상담연계대기',confidence_score:42,created_at:'2026-10-23T15:00:00Z'},{id:3,query:'주민등록등본 발급',status:'자체완결',confidence_score:94,created_at:'2026-10-23T01:00:00Z'}]);
  });
  assert.equal(statRes.code,200);assert.equal(statRes.body.analytics.selfResolvedCount,1);assert.equal(statRes.body.analytics.transferredCount,2);
+ assert.equal(statRes.body.analytics.lowResolveRateDetected,true);assert.equal(statRes.body.analytics.byCategory['건축/분쟁/인허가'],2);
+ assert.equal(statRes.body.analytics.byWeek.length,1);assert.equal(statRes.body.analytics.byMonth.length,1);
  assert.equal(statRes.body.analytics.overdueCount,1);assert.equal(statRes.body.analytics.byDepartment['건축과'],2);
  assert.ok(statRes.body.analytics.lowConfidenceClusters.some(c=>c.keyword==='불법건축물'&&c.needsKnowledgeUpdate===true));
 });

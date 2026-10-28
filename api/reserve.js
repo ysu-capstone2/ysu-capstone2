@@ -21,6 +21,19 @@ export default async function handler(req, res) {
     if (typeof suppliedId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(suppliedId)) throw new ApiError(400, '접수 요청 번호를 확인해 주세요.');
     const requestId=suppliedId.toLowerCase();
     const preferredAt = preferredTime(body.preferredAt);
+    if (desiredDatetime) {
+      const existing = await userData(token, `citizen_complaints?dept_name=eq.${encodeURIComponent(departments[body.deptCode])}&process_status=neq.${encodeURIComponent('취소')}&select=id,request_id,summary,preferred_at&limit=20`).catch(() => []);
+      const sameSlot = (existing || []).filter(item => item.request_id !== requestId && (String(item.summary || '').includes(`[희망일시: ${desiredDatetime}]`) || (preferredAt && item.preferred_at && Date.parse(item.preferred_at) === Date.parse(preferredAt))));
+      if (sameSlot.length >= 5) {
+        const alternativeSlots = ['오전 10:00~11:00', '오후 14:00~15:00', '오후 16:00~17:00', '익일 오전 09:30~10:30'];
+        return res.status(409).json({
+          ok: false,
+          code: 'SLOT_FULL',
+          alternativeSlots,
+          message: `[이벤트 4·E1 · 희망 시간대 마감] 선택한 부서(${departments[body.deptCode]})의 ${desiredDatetime} 시간대 예약 정원(5건)이 마감되었습니다. 대안 시간대(${alternativeSlots.join(', ')})를 선택해 주세요.`,
+        });
+      }
+    }
     const payload = { user_id: user.id, request_id: requestId, citizen_name: citizenName, citizen_tel: citizenTel, dept_name: departments[body.deptCode], consult_type: body.consultType, summary };
     if (preferredAt) payload.preferred_at = preferredAt;
     let [row] = await userData(token, 'citizen_complaints?on_conflict=user_id,request_id', {

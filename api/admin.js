@@ -32,16 +32,18 @@ export default async function handler(req, res) {
     if (typeof body.id !== 'string' || !/^[a-f0-9-]{36}$/.test(body.id) || !['접수', '처리중', '완료', '보완요청'].includes(body.status)) throw new ApiError(400, '접수 건과 처리 상태를 확인해 주세요.');
     const rawResult = String(body.result || '').trim(), officer = String(body.officer || '').trim();
     const reviewMemo = String(body.reviewMemo || '').trim();
+    const investigationNote = String(body.investigationNote || '').trim();
     const dueDate = String(body.dueDate || '').trim();
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new ApiError(400, '처리 예정일 형식을 확인해 주세요.');
-    const result = reviewMemo && !rawResult.includes('[사전검토메모:') ? `[사전검토메모: ${reviewMemo}]\n${rawResult}`.trim() : rawResult;
+    const withReview = reviewMemo && !rawResult.includes('[사전검토메모:') ? `[사전검토메모: ${reviewMemo}]\n${rawResult}`.trim() : rawResult;
+    const result = investigationNote && !withReview.includes('[현장조사메모:') ? `${withReview}\n[현장조사메모: ${investigationNote}]`.trim() : withReview;
     if (result.length > 2000 || officer.length > 50) throw new ApiError(400, '담당자 또는 안내 내용이 너무 깁니다.');
     const params = new URLSearchParams({ id: `eq.${body.id}`, process_status: 'neq.취소' });
     if (body.updatedAt) {
       if (typeof body.updatedAt !== 'string' || !Number.isFinite(Date.parse(body.updatedAt))) throw new ApiError(400, '접수 변경 시각을 확인해 주세요.');
       params.set('updated_at', `eq.${body.updatedAt}`);
     }
-    const rows = await userData(token, `citizen_complaints?${params}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result, officer_name: officer, updated_at: new Date().toISOString(), ...(Object.hasOwn(body,'dueDate')?{due_date:dueDate || null}:{}) }) });
+    const rows = await userData(token, `citizen_complaints?${params}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result, officer_name: officer, updated_at: new Date().toISOString(), ...(Object.hasOwn(body,'dueDate')?{due_date:dueDate || null}:{}), ...(reviewMemo?{review_memo:reviewMemo}:{}), ...(investigationNote?{investigation_note:investigationNote}:{}) }) });
     if (!rows.length) throw new ApiError(409, '접수가 변경되었거나 취소됐어요. 새로고침 후 다시 확인해 주세요.');
     return res.status(200).json({ ok: true });
   } catch (error) { return fail(res, error); }

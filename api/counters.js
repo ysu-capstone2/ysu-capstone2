@@ -49,6 +49,9 @@ export function createCounterHandler({ request = supabaseRequest } = {}) {
       return res.status(200).json({ok:true,replayed:Boolean(result.replayed)});
     } else if (/^[a-f0-9-]{36}$/.test(body.counterId || '') && body.action === 'toggle' && typeof body.isOpen === 'boolean') {
       await request(`service_counters?id=eq.${body.counterId}`,{method:'PATCH',body:JSON.stringify({is_open:body.isOpen,updated_at:new Date().toISOString()})});
+    } else if (/^[a-f0-9-]{36}$/.test(body.counterId || '') && body.action === 'crowd') {
+      const targetCount = Number.isInteger(body.waitingCount) && body.waitingCount >= 0 ? body.waitingCount : 10;
+      await request(`service_counters?id=eq.${body.counterId}`,{method:'PATCH',body:JSON.stringify({waiting_count:targetCount,last_issued:targetCount,updated_at:new Date().toISOString()})});
     } else throw new ApiError(400,'창구 요청을 확인해 주세요.');
     return res.status(200).json({ok:true});
   } catch (error) { return fail(res,error); }

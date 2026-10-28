@@ -161,3 +161,12 @@ test('structured Gemini responses reject wrong types and missing decisions inste
     payload={...generated,...patch};await assert.rejects(generateCivilResponseWithGemini(input.message,[knowledge]),/invalid structured/);
   }
 });
+
+test('approved knowledge items with keywords match natural questions without Gemini and complex disputes transfer', async () => {
+  const kbWithKeywords = { ...knowledge, id: 5, title: '전입신고 및 확정일자 부여', keywords: ['전입신고', '확정일자'], required_docs: '세대주 신분증', fee: '무료' };
+  const service = setup({ getKey: () => '', request: async (path) => path.startsWith('department_info') ? departments : [kbWithKeywords] });
+  const r1 = await service.answer({ message: '전입신고 방법', sessionId: 'browser-a' });
+  assert.equal(r1.source, 'knowledge'); assert.equal(r1.requiredDocs, '세대주 신분증');
+  const r2 = await service.answer({ message: '이웃 건축물 일조권 분쟁과 공사 소음 피해보상 및 취소소송', sessionId: 'browser-a' });
+  assert.equal(r2.isTransferred, true); assert.equal(r2.responseType, 'transfer');
+});

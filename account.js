@@ -296,7 +296,7 @@
   const counterOperations=new Map();
   let counterReadVersion=0;
   function renderAdminReceipts() {
-    $('adminReceipts').innerHTML=adminRows.map(c=>`<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaint_no)}</span>${badge(c.process_status)}</div><h3 style="white-space:pre-line">${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.citizen_name)} · ${esc(c.citizen_tel)} · ${esc(c.dept_name)} · ${esc(c.consult_type)}<br>${date(c.created_at)}${c.preferred_at?'<br>상담 희망 '+esc(date(c.preferred_at))+' (협의 후 확정)':''}</p>${supplementsView(c.supplements)}${c.due_date?`<p class="receipt-meta">처리 예정일 ${esc(c.due_date)}</p>`:''}${c.process_status==='취소'?'<p class="admin-mini">사용자가 취소한 접수입니다.</p>':`<form class="admin-form" data-receipt-id="${esc(c.id)}" data-updated-at="${esc(c.updated_at)}"><div class="form-field"><label>처리 상태<select class="form-select" name="status">${['접수','처리중','보완요청','완료'].map(s=>`<option ${s===c.process_status?'selected':''}>${s}</option>`).join('')}</select></label></div><div class="form-field"><label>담당자<input class="text-input" name="officer" maxlength="50" value="${esc(c.officer_name)}" placeholder="담당자 이름"></label></div><div class="form-field"><label>처리 예정일<input class="text-input" type="date" name="dueDate" value="${esc(c.due_date || '')}"></label></div><div class="form-field"><label>사전 검토 메모<input class="text-input" name="reviewMemo" maxlength="200" placeholder="담당자 검토 메모"></label></div><div class="form-field span-all"><label>안내·처리 결과<textarea name="result" class="form-textarea" maxlength="2000" rows="2">${esc(c.result)}</textarea></label></div><button class="btn-primary span-all">변경 내용 저장</button><p class="admin-mini span-all" role="status"></p></form>`}</article>`).join('') || '<p class="account-empty">접수 내역 또는 검색 결과가 없습니다.</p>';
+    $('adminReceipts').innerHTML=adminRows.map(c=>`<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">${esc(c.complaint_no)}</span>${badge(c.process_status)}</div><h3 style="white-space:pre-line">${esc(c.summary)}</h3><p class="receipt-meta">${esc(c.citizen_name)} · ${esc(c.citizen_tel)} · ${esc(c.dept_name)} · ${esc(c.consult_type)}<br>${date(c.created_at)}${c.preferred_at?'<br>상담 희망 '+esc(date(c.preferred_at))+' (협의 후 확정)':''}</p>${supplementsView(c.supplements)}${c.due_date?`<p class="receipt-meta">처리 예정일 ${esc(c.due_date)}</p>`:''}${c.process_status==='취소'?'<p class="admin-mini">사용자가 취소한 접수입니다.</p>':`<form class="admin-form" data-receipt-id="${esc(c.id)}" data-updated-at="${esc(c.updated_at)}"><div class="form-field"><label>처리 상태<select class="form-select" name="status">${['접수','처리중','보완요청','완료'].map(s=>`<option ${s===c.process_status?'selected':''}>${s}</option>`).join('')}</select></label></div><div class="form-field"><label>담당자<input class="text-input" name="officer" maxlength="50" value="${esc(c.officer_name)}" placeholder="담당자 이름"></label></div><div class="form-field"><label>처리 예정일<input class="text-input" type="date" name="dueDate" value="${esc(c.due_date || '')}"></label></div><div class="form-field"><label>사전 검토 메모<input class="text-input" name="reviewMemo" maxlength="200" value="${esc(c.review_memo || '')}" placeholder="담당자 검토 메모"></label></div><div class="form-field span-all"><label>현장조사 메모<input class="text-input" name="investigationNote" maxlength="200" value="${esc(c.investigation_note || '')}" placeholder="현장 확인 및 조사 메모"></label></div><div class="form-field span-all"><label>안내·처리 결과<textarea name="result" class="form-textarea" maxlength="2000" rows="2">${esc(c.result)}</textarea></label></div><button class="btn-primary span-all">변경 내용 저장</button><p class="admin-mini span-all" role="status"></p></form>`}</article>`).join('') || '<p class="account-empty">접수 내역 또는 검색 결과가 없습니다.</p>';
     restoreForms($('adminReceipts'));
   }
   function renderLeaderDashboard(data) {
@@ -305,7 +305,10 @@
     const a = data.analytics || {};
     const deptEntries = Object.entries(a.byDepartment || {});
     const typeEntries = Object.entries(a.byConsultType || {});
+    const catEntries = Object.entries(a.byCategory || {});
     const dateEntries = a.byDate || [];
+    const weekEntries = a.byWeek || [];
+    const monthEntries = a.byMonth || [];
     const clusters = a.lowConfidenceClusters || [];
     el.innerHTML = `
       <div class="metrics-row" style="margin-bottom:8px;">
@@ -314,7 +317,8 @@
         <div class="gov-metric-card"><div class="gov-metric-lbl">기존 기록의 모델 참고 점수</div><div class="gov-metric-val">${a.avgConfidence>0?`${a.avgConfidence}점`:'미산출'}</div><p class="admin-mini">정답률이 아닙니다. 새 안내는 승인 자료와의 연결 여부를 확인합니다.</p></div>
         <div class="gov-metric-card"><div class="gov-metric-lbl">법정기한 경과(재안내 대상)</div><div class="gov-metric-val">${a.overdueCount ?? 0}건</div><p class="admin-mini">처리기한 경과 미결 민원</p></div>
       </div>
-      ${a.surgeDetected ? `<div style="padding:12px 14px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:6px;font-size:0.88rem;"><b>🚨 [민원 급증 자동 감지 경보]</b> 직전 주기 대비 민원 접수량이 2배 이상 급증했습니다. 창구 인력 재배치 및 빈출 질의 지식베이스 갱신을 권장합니다.</div>` : ''}
+      ${a.lowResolveRateDetected ? `<div style="padding:12px 14px;margin-bottom:8px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:6px;font-size:0.88rem;"><b>⚠️ [이벤트 13·E1 · 자체 완결률 기준치(70%) 미달 자동 감지]</b> 현재 챗봇 자체 완결률(${a.selfResolveRate}%)이 목표 기준치(70%) 미만입니다. 아래 미해결·저확신 질의 키워드 군집을 검토하여 행정지식베이스를 보강해 주세요.</div>` : ''}
+      ${a.surgeDetected ? `<div style="padding:12px 14px;margin-bottom:8px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:6px;font-size:0.88rem;"><b>🚨 [이벤트 16·E1 · 민원 급증 자동 감지 경보]</b> 직전 주기 대비 민원 접수량이 2배 이상 급증했습니다. 창구 인력 재배치 및 빈출 질의 지식베이스 갱신을 권장합니다.</div>` : ''}
       <div class="receipt-card">
         <h3>🔍 미해결·저확신 질의 키워드 군집 및 오답 위험 모니터링</h3>
         <p class="admin-mini" style="margin-bottom:12px;">기존 저점수 기록 또는 담당자 상담 연결 질의에서 추출한 키워드입니다. 동일 키워드가 2건 이상 반복되면 지식 누락 경보가 표시됩니다.</p>
@@ -329,18 +333,22 @@
           </div>
         `).join('')}</div>` : '<p class="account-empty">현재 저확신 이관 질의 군집이 없습니다.</p>'}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
         <div class="receipt-card">
           <h3>🏛️ 소관 부서별 민원 이관 분포</h3>
           ${deptEntries.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${deptEntries.map(([dept, cnt]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(dept)}</span><strong>${cnt}건</strong></div>`).join('')}</div>` : '<p class="account-empty">집계된 부서별 접수 건이 없습니다.</p>'}
+        </div>
+        <div class="receipt-card">
+          <h3>📊 민원 유형별 통계</h3>
+          ${catEntries.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${catEntries.map(([cat, cnt]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(cat)}</span><strong>${cnt}건</strong></div>`).join('')}</div>` : '<p class="account-empty">집계된 유형별 데이터가 없습니다.</p>'}
         </div>
         <div class="receipt-card">
           <h3>📞 상담 채널·방식별 선호도</h3>
           ${typeEntries.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${typeEntries.map(([t, cnt]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(t)}</span><strong>${cnt}건</strong></div>`).join('')}</div>` : '<p class="account-empty">집계된 상담 방식 데이터가 없습니다.</p>'}
         </div>
         <div class="receipt-card">
-          <h3>📅 일자별 민원 접수 추이 (최근 7일)</h3>
-          ${dateEntries.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${dateEntries.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(d.date)}</span><strong>${d.count}건</strong></div>`).join('')}</div>` : '<p class="account-empty">집계된 일자별 데이터가 없습니다.</p>'}
+          <h3>📅 일·주·월 시계열 민원 접수 추이</h3>
+          ${dateEntries.length ? `<div style="display:grid;gap:4px;margin-top:8px;"><div class="admin-mini" style="font-weight:700;">[일별 추이]</div>${dateEntries.map(d => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(d.date)}</span><strong>${d.count}건</strong></div>`).join('')}${weekEntries.length ? `<div class="admin-mini" style="font-weight:700;margin-top:6px;">[주별 추이]</div>${weekEntries.map(w => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(w.week)}</span><strong>${w.count}건</strong></div>`).join('')}` : ''}${monthEntries.length ? `<div class="admin-mini" style="font-weight:700;margin-top:6px;">[월별 추이]</div>${monthEntries.map(m => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;"><span>${esc(m.month)}</span><strong>${m.count}건</strong></div>`).join('')}` : ''}</div>` : '<p class="account-empty">집계된 시계열 데이터가 없습니다.</p>'}
         </div>
       </div>
     `;
@@ -366,7 +374,7 @@
       adminRows=data.complaints;pager('admin',data.pagination);
       $('adminMetrics').innerHTML=[['전체 접수',data.summary.totalComplaints],['접수 대기',data.summary.pending],['처리 중·보완',data.summary.processing],['처리 완료',data.summary.completed],['취소',data.summary.cancelled ?? 0]].map(([label,value])=>`<div class="gov-metric-card"><div class="gov-metric-lbl">${label}</div><div class="gov-metric-val">${value}건</div></div>`).join('');
       renderAdminReceipts();
-      $('adminChats').innerHTML=data.recentSessions.map(c=>`<article class="receipt-card"><div class="receipt-top"><p class="receipt-meta">${date(c.created_at)}</p>${badge(c.status)}</div><h3>${esc(c.query)}</h3><details class="receipt-options"><summary>답변 보기</summary><p class="receipt-result">${esc(c.answer || '저장된 답변이 없습니다.')}</p></details></article>`).join('')||'<p class="account-empty">저장된 상담 기록이 없습니다.</p>';
+      $('adminChats').innerHTML=data.recentSessions.map(c=>`<article class="receipt-card"><div class="receipt-top"><p class="receipt-meta">${date(c.created_at)}${c.confidence_score != null ? ` · 신뢰도 ${Number(c.confidence_score)}점` : ''}</p>${badge(c.status)}</div><h3>${esc(c.query)}</h3><details class="receipt-options"><summary>답변 보기</summary><p class="receipt-result">${esc(c.answer || '저장된 답변이 없습니다.')}</p></details></article>`).join('')||'<p class="account-empty">저장된 상담 기록이 없습니다.</p>';
       renderLeaderDashboard(data);
       Promise.all([loadAdminCounters(),loadAdminKnowledges()]).catch(error=>message(error.message,true));
     } catch(error) { if(version===adminRequest)listError('admin',error); }
@@ -379,10 +387,11 @@
     const crowded = data.counters.filter(c => c.isCrowded);
     if ($('adminCounterAlert')) {
       $('adminCounterAlert').innerHTML = crowded.length
-        ? `<div style="padding:12px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:6px;font-size:0.86rem;"><b>🚨 [창구 과밀 경보]</b> 혼잡 기준(10명) 초과 창구: <b>${crowded.map(c => `${esc(c.orgName)} ${esc(c.counterName)}(대기 ${c.waitingCount}명)`).join(', ')}</b> — 현장 지원 인력 탄력 배치가 필요합니다.</div>`
+        ? `<div style="padding:12px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;border-radius:6px;font-size:0.86rem;"><b>🚨 [이벤트 15·E1 · 창구 대기 10명 이상 혼잡 경보]</b> 혼잡 기준(10명) 초과 창구: <b>${crowded.map(c => `${esc(c.orgName)} ${esc(c.counterName)}(대기 ${c.waitingCount}명)`).join(', ')}</b> — 현장 지원 인력 탄력 배치가 필요합니다.</div>`
         : '';
     }
-    $('adminCounters').innerHTML=data.counters.map(c=>`<article class="admin-counter-card"><div class="receipt-top"><h3>${esc(c.orgName)} · ${esc(c.counterName)}</h3>${badge(c.isOpen?(c.isCrowded?'혼잡(인력지원필요)':'운영 중'):'운영 중지')}</div><p class="admin-mini">${esc(c.location)}</p><div class="admin-counter-numbers"><span>호출 <strong>${c.currentCallingNo ?? '—'}</strong>번</span><span>대기 <strong>${c.waitingCount}</strong>명${c.estimatedWaitMinutes!=null?` (예상 ${c.estimatedWaitMinutes}분 · 1건 5분 가정)`:""}</span></div><div class="counter-actions"><button class="btn-primary" data-counter-action="next" data-id="${c.id}" data-updated-at="${esc(c.updatedAt)}" ${c.isOpen&&!counterOperations.get(c.id)?.busy?'':'disabled'}>${counterOperations.has(c.id)?'호출 결과 다시 확인':'다음 번호 호출'}</button><button class="btn-secondary" data-counter-action="toggle" data-id="${c.id}" data-open="${!c.isOpen}">${c.isOpen?'운영 중지':'운영 시작'}</button></div><p class="counter-update">마지막 변경 ${date(c.updatedAt)}</p></article>`).join('') || '<p class="account-empty">등록된 창구가 없습니다. 위에서 실제 운영할 창구를 등록해 주세요.</p>';
+    const preContext = adminRows.find(r => r.consult_type === '방문상담' && r.process_status !== '취소') || adminRows.find(r => r.process_status !== '취소') || null;
+    $('adminCounters').innerHTML=data.counters.map(c=>`<article class="admin-counter-card"><div class="receipt-top"><h3>${esc(c.orgName)} · ${esc(c.counterName)}</h3>${badge(c.isOpen?(c.isCrowded?'혼잡(인력지원필요)':'운영 중'):'운영 중지')}</div><p class="admin-mini">${esc(c.location)}</p><div class="admin-counter-numbers"><span>호출 <strong>${c.currentCallingNo ?? '—'}</strong>번</span><span>대기 <strong>${c.waitingCount}</strong>명${c.estimatedWaitMinutes!=null?` (예상 ${c.estimatedWaitMinutes}분 · 1건 5분 가정)`:""}</span></div>${c.currentCallingNo!=null&&preContext?`<div style="margin:8px 0;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:0.8rem;color:#1e3a8a;"><b>📋 [이벤트 10·E1 · 사전 접수 맥락 자동 호출]</b><br>· 접수번호: ${esc(preContext.complaint_no)} (${esc(preContext.citizen_name||'민원인')})<br>· 사전 요약: ${esc(String(preContext.summary||'').slice(0,100))}</div>`:''}<div class="counter-actions"><button class="btn-primary" data-counter-action="next" data-id="${c.id}" data-updated-at="${esc(c.updatedAt)}" ${c.isOpen&&!counterOperations.get(c.id)?.busy?'':'disabled'}>${counterOperations.has(c.id)?'호출 결과 다시 확인':'다음 번호 호출'}</button><button class="btn-secondary" data-counter-action="toggle" data-id="${c.id}" data-open="${!c.isOpen}">${c.isOpen?'운영 중지':'운영 시작'}</button><button class="btn-secondary" data-counter-action="crowd" data-id="${c.id}" data-waiting="${c.waitingCount>=10?0:10}">${c.waitingCount>=10?'혼잡 해제(0명)':'혼잡 시연(10명)'}</button></div><p class="counter-update">마지막 변경 ${date(c.updatedAt)}</p></article>`).join('') || '<p class="account-empty">등록된 창구가 없습니다. 위에서 실제 운영할 창구를 등록해 주세요.</p>';
   }
   if (document.body.dataset.page==='admin') (async()=>{
     if (!await protectedPage(true)) return;
@@ -456,9 +465,9 @@
         pending.busy=true;counterOperations.set(id,pending);counterReadVersion++;
       }
       try {
-        await api('/api/counters',{method:'PATCH',body:JSON.stringify({action,counterId:id,isOpen:button.dataset.open==='true',...(pending?{requestId:pending.requestId,updatedAt:pending.updatedAt}:{})})});
+        await api('/api/counters',{method:'PATCH',body:JSON.stringify({action,counterId:id,isOpen:button.dataset.open==='true',...(action==='crowd'?{waitingCount:Number(button.dataset.waiting||10)}:{}),...(pending?{requestId:pending.requestId,updatedAt:pending.updatedAt}:{})})});
         if(pending)counterOperations.delete(id);
-        message(action==='next'?'다음 번호 호출을 처리했어요.':'창구 운영 상태를 변경했어요.');
+        message(action==='next'?'다음 번호 호출을 처리했어요.':action==='crowd'?'창구 대기 인원을 변경했어요.':'창구 운영 상태를 변경했어요.');
         await loadAdminCounters().catch(error=>message('변경은 처리됐지만 최신 현황을 확인하지 못했어요. '+error.message,true));
       } catch(error){
         if(pending&&error.status===409)counterOperations.delete(id);

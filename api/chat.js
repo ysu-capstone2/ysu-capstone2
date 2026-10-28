@@ -35,7 +35,7 @@ export function createChatHandler({ service = createPortalChatService(), request
       try {
         const records = await request('chat_session', { method: 'POST', body: JSON.stringify({
           knowledge_id: result.knowledgeId || null, citizen_id: citizenId, channel: 'WEB',
-          query: message, answer: result.answer, confidence_score: result.confidenceScore ?? 0,
+          query: message, answer: result.answer, confidence_score: result.confidenceScore ?? (result.isTransferred ? 35 : (result.source === 'knowledge' ? 95 : 90)),
           status: result.isTransferred ? '상담연계대기' : '자체완결',
         }) });
         recordId = records?.[0]?.id || null;
