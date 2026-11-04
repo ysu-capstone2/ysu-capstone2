@@ -118,6 +118,20 @@ test('administrator notes are saved separately from the member-facing result and
  assert.equal(result.code,200);assert.equal(saved.result,'담당자가 확인 중입니다.');assert.equal(saved.review_memo,'');assert.equal(saved.investigation_note,'현장 확인');
 });
 
+test('administrator approval publishes an existing knowledge item and reports missing items',async()=>{
+ process.env.SUPABASE_SERVICE_ROLE_KEY='test-service-key';
+ const body={action:'knowledge',knowledgeId:'7',updatedAt:'2026-10-28T00:00:00Z',title:'검증된 안내',content:'확인된 내용'};
+ let payload;
+ const fetcher=(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,{...user,app_metadata:{role:'admin'}});
+  assert.equal(new URL(url).searchParams.get('updated_at'),'eq.'+body.updatedAt);payload=JSON.parse(options.body);return response(200,[{id:7}]);
+ };
+ assert.equal((await run(admin,req('POST',body),fetcher)).code,200);
+ assert.equal(payload.approval_status,'승인완료');
+ const missing=await run(admin,req('POST',body),(url)=>url.endsWith('/auth/v1/user')?response(200,{...user,app_metadata:{role:'admin'}}):response(200,[]));
+ assert.equal(missing.code,409);
+});
+
 test('reservation preference does not pretend to enforce unverified shared capacity',async()=>{
  const preferredAt=new Date(Date.now()+86400000).toISOString();let reads=0;
  const result=await run(reserve,req('POST',{citizenName:'회원',citizenTel:'010-1234-5678',summary:'상담',consultType:'방문상담',deptCode:'D01',preferredAt,desiredDatetime:'내일'}),(url,options)=>{

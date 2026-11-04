@@ -353,13 +353,15 @@
       </div>
     `;
   }
+  let knowledgeRows = [], knowledgeEditUpdatedAt = null;
   async function loadAdminKnowledges() {
     const container = $('adminKnowledges');
     if (!container) return;
     try {
       const data = await api('/api/admin');
       const rows = data.knowledges || [];
-      container.innerHTML = rows.map(k => `<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">[#${k.id}] ${esc(k.category_code || '일반행정')}</span>${badge(k.approval_status || '승인완료')}</div><h3>${esc(k.title)}</h3><p class="receipt-result" style="white-space:pre-line;margin:8px 0;">${esc(k.content)}</p><p class="receipt-meta">구비서류: ${esc(k.required_docs || '해당없음')} · 수수료: ${esc(k.fee || '해당없음')}${k.revised_at ? ' · 제·개정일: '+esc(k.revised_at) : ''}</p></article>`).join('') || '<p class="account-empty">등록된 행정지식베이스 항목이 없습니다. 위 양식에서 첫 지식을 등록해 보세요.</p>';
+      knowledgeRows = rows;
+      container.innerHTML = rows.map(k => `<article class="receipt-card"><div class="receipt-top"><span class="receipt-no">[#${esc(k.id)}] ${esc(k.category_code || '일반행정')}</span>${badge(k.approval_status || '승인완료')}</div><h3>${esc(k.title)}</h3><p class="receipt-result" style="white-space:pre-line;margin:8px 0;">${esc(k.content)}</p><p class="receipt-meta">구비서류: ${esc(k.required_docs || '미등록')} · 수수료: ${esc(k.fee || '미등록')}${k.revised_at ? ' · 제·개정일: '+esc(k.revised_at) : ''}</p><button type="button" class="btn-secondary" data-edit-knowledge="${esc(k.id)}">수정·승인</button></article>`).join('') || '<p class="account-empty">등록된 행정지식베이스 항목이 없습니다. 위 양식에서 첫 지식을 등록해 보세요.</p>';
     } catch {
       container.innerHTML = '<p class="account-empty">행정지식베이스 목록을 불러오지 못했습니다.</p>';
     }
@@ -414,9 +416,29 @@
       const sq = btn.dataset.sampleQuery || '';
       const tabBtn = document.querySelector('[data-admin-tab="knowledge"]');
       tabBtn?.click();
+      $('knowledgeId').value=''; knowledgeEditUpdatedAt=null; $('knowledgeEditNotice').hidden=true;
       if ($('knowledgeTitle')) $('knowledgeTitle').value = sq || `${kw} 관련 민원 처리 절차 안내`;
       if ($('knowledgeKeywords')) $('knowledgeKeywords').value = kw;
       $('knowledgeContent')?.focus();
+    });
+    $('adminKnowledges')?.addEventListener('click', event => {
+      const button = event.target.closest('[data-edit-knowledge]');
+      const item = button && knowledgeRows.find(row => String(row.id) === button.dataset.editKnowledge);
+      if (!item) return;
+      $('knowledgeId').value=String(item.id);
+      knowledgeEditUpdatedAt=item.updated_at;
+      $('knowledgeCategory').value=item.category_code || '일반행정';
+      if (!$('knowledgeCategory').value) $('knowledgeCategory').value='일반행정';
+      $('knowledgeTitle').value=item.title || '';
+      $('knowledgeContent').value=item.content || '';
+      $('knowledgeDocs').value=item.required_docs || '';
+      $('knowledgeFee').value=item.fee || '';
+      $('knowledgeKeywords').value=(item.keywords || []).join(', ');
+      $('knowledgeEditNotice').hidden=false;
+      $('knowledgeTitle').focus();
+    });
+    $('cancelKnowledgeEdit')?.addEventListener('click', () => {
+      $('knowledgeForm').reset(); $('knowledgeId').value=''; knowledgeEditUpdatedAt=null; $('knowledgeEditNotice').hidden=true;
     });
     $('knowledgeForm')?.addEventListener('submit', async event => {
       event.preventDefault();
@@ -428,6 +450,7 @@
           body: JSON.stringify({
             action: 'knowledge',
             knowledgeId: $('knowledgeId')?.value || undefined,
+            updatedAt: knowledgeEditUpdatedAt || undefined,
             categoryCode: $('knowledgeCategory')?.value,
             title: $('knowledgeTitle')?.value,
             content: $('knowledgeContent')?.value,
@@ -437,6 +460,7 @@
           }),
         });
         event.target.reset();
+        $('knowledgeId').value=''; knowledgeEditUpdatedAt=null; $('knowledgeEditNotice').hidden=true;
         message('행정지식베이스 갱신안을 승인하고 반영했어요.');
         await loadAdminKnowledges();
       } catch (error) { message(error.message, true); }

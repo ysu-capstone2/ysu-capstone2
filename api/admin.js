@@ -20,9 +20,14 @@ export default async function handler(req, res) {
       if (!title || title.length > 120 || !content || content.length > 2000 || categoryCode.length > 50 || requiredDocs.length > 500 || fee.length > 200) {
         throw new ApiError(400, '지식베이스 제목, 분류, 안내 본문을 확인해 주세요.');
       }
-      const payload = { category_code: categoryCode, title, content, required_docs: requiredDocs, fee, keywords };
-      if (body.knowledgeId && Number.isInteger(Number(body.knowledgeId))) {
-        await supabaseRequest(`admin_knowledge?id=eq.${Number(body.knowledgeId)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const payload = { category_code: categoryCode, title, content, required_docs: requiredDocs, fee, keywords, approval_status:'승인완료' };
+      if (body.knowledgeId) {
+        const id = Number(body.knowledgeId);
+        if (!Number.isSafeInteger(id) || id < 1) throw new ApiError(400, '지식 항목을 확인해 주세요.');
+        if (typeof body.updatedAt !== 'string' || !Number.isFinite(Date.parse(body.updatedAt))) throw new ApiError(400, '최신 지식 목록을 불러온 뒤 수정해 주세요.');
+        const params = new URLSearchParams({id:`eq.${id}`,updated_at:`eq.${body.updatedAt}`});
+        const rows = await supabaseRequest(`admin_knowledge?${params}`, { method: 'PATCH', body: JSON.stringify({...payload,updated_at:new Date().toISOString()}) });
+        if (!rows?.length) throw new ApiError(409, '지식 항목이 변경되었거나 삭제됐어요. 목록을 새로고침해 주세요.');
       } else {
         await supabaseRequest('admin_knowledge', { method: 'POST', body: JSON.stringify(payload) });
       }
