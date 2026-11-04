@@ -109,6 +109,30 @@ test('administrator due dates are saved with the conditional status update in a 
  });assert.equal(result.code,200);assert.equal(writes,1);
 });
 
+test('administrator notes are saved separately from the member-facing result and can be cleared',async()=>{
+ let saved;
+ const result=await run(admin,req('PATCH',{id,status:'처리중',result:'담당자가 확인 중입니다.',reviewMemo:'',investigationNote:'현장 확인',updatedAt:'2026-10-28T00:00:00Z'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,{...user,app_metadata:{role:'admin'}});
+  saved=JSON.parse(options.body);return response(200,[{id}]);
+ });
+ assert.equal(result.code,200);assert.equal(saved.result,'담당자가 확인 중입니다.');assert.equal(saved.review_memo,'');assert.equal(saved.investigation_note,'현장 확인');
+});
+
+test('reservation preference does not pretend to enforce unverified shared capacity',async()=>{
+ const preferredAt=new Date(Date.now()+86400000).toISOString();let reads=0;
+ const result=await run(reserve,req('POST',{citizenName:'회원',citizenTel:'010-1234-5678',summary:'상담',consultType:'방문상담',deptCode:'D01',preferredAt,desiredDatetime:'내일'}),(url,options)=>{
+  if(url.endsWith('/auth/v1/user'))return response(200,user);
+  if(options.method==='GET'){reads++;throw new Error('capacity is not known from owner-scoped records');}
+  const body=JSON.parse(options.body);return response(201,[{...body,complaint_no:'YSU-new',id}]);
+ });assert.equal(result.code,201);assert.equal(reads,0);
+});
+
+test('manual crowd counts cannot overwrite real queue state',async()=>{
+ let writes=0;const handler=createCounterHandler({request:async()=>{writes++;}});
+ const result=await run(handler,req('PATCH',{action:'crowd',counterId:id,waitingCount:0}),()=>response(200,{...user,app_metadata:{role:'admin'}}));
+ assert.equal(result.code,400);assert.equal(writes,0);
+});
+
 test('password recovery uses a canonical callback and does not reveal account existence or tokens',async()=>{
  const result=await run(auth,req('POST',{action:'recover',email:user.email,redirectTo:'https://evil.example'}),(url,options)=>{
   const target=new URL(url);assert.equal(target.pathname,'/auth/v1/recover');assert.equal(target.searchParams.get('redirect_to'),'http://localhost:3000/login.html');assert.deepEqual(JSON.parse(options.body),{email:user.email});return response(200,{});

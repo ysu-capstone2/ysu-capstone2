@@ -114,6 +114,11 @@ test('status selection resets list paging and ticket polling leaves receipt draf
 test('integration registers knowledge approval and report actions exactly once',async()=>{
  const ui=await boot('admin');assert.equal(ui.get('knowledgeForm').listenerCounts.submit,1);assert.equal(ui.get('adminLeaderReport').listenerCounts.click,1);
 });
+test('counter view does not fabricate queue counts or associate unrelated complaints with a called number',async()=>{
+ const ui=await boot('admin');const html=ui.get('adminCounters').innerHTML;
+ assert.doesNotMatch(html,/data-counter-action="crowd"|사전 접수 맥락 자동 호출|도로 상담/);
+ assert.match(html,/다음 번호 호출/);
+});
 
 test('privacy request retries keep the message and request ID after a lost response',async()=>{
  const ui=await boot(),form=ui.get('privacyRequestForm'),button={disabled:false};
