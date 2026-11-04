@@ -5,8 +5,7 @@ export default async function handler(req, res) {
     method(req, res, ['GET', 'POST', 'PATCH']);
     if (req.method === 'GET') {
       await adminSession(req, res);
-      let knowledges = [];
-      try { knowledges = await supabaseRequest('admin_knowledge?order=id.desc&limit=50'); } catch { knowledges = []; }
+      const knowledges = await supabaseRequest('admin_knowledge?order=id.desc&limit=50');
       return res.status(200).json({ ok: true, knowledges });
     }
     const body = await jsonBody(req);
@@ -21,9 +20,14 @@ export default async function handler(req, res) {
       if (!title || title.length > 120 || !content || content.length > 2000 || categoryCode.length > 50 || requiredDocs.length > 500 || fee.length > 200) {
         throw new ApiError(400, '지식베이스 제목, 분류, 안내 본문을 확인해 주세요.');
       }
-      const payload = { category_code: categoryCode, title, content, required_docs: requiredDocs, fee, keywords };
-      if (body.knowledgeId && Number.isInteger(Number(body.knowledgeId))) {
-        await supabaseRequest(`admin_knowledge?id=eq.${Number(body.knowledgeId)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const payload = { category_code: categoryCode, title, content, required_docs: requiredDocs, fee, keywords, approval_status:'승인완료' };
+      if (body.knowledgeId) {
+        const id = Number(body.knowledgeId);
+        if (!Number.isSafeInteger(id) || id < 1) throw new ApiError(400, '지식 항목을 확인해 주세요.');
+        if (typeof body.updatedAt !== 'string' || !Number.isFinite(Date.parse(body.updatedAt))) throw new ApiError(400, '최신 지식 목록을 불러온 뒤 수정해 주세요.');
+        const params = new URLSearchParams({id:`eq.${id}`,updated_at:`eq.${body.updatedAt}`});
+        const rows = await supabaseRequest(`admin_knowledge?${params}`, { method: 'PATCH', body: JSON.stringify({...payload,updated_at:new Date().toISOString()}) });
+        if (!rows?.length) throw new ApiError(409, '지식 항목이 변경되었거나 삭제됐어요. 목록을 새로고침해 주세요.');
       } else {
         await supabaseRequest('admin_knowledge', { method: 'POST', body: JSON.stringify(payload) });
       }
@@ -35,15 +39,13 @@ export default async function handler(req, res) {
     const investigationNote = String(body.investigationNote || '').trim();
     const dueDate = String(body.dueDate || '').trim();
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new ApiError(400, '처리 예정일 형식을 확인해 주세요.');
-    const withReview = reviewMemo && !rawResult.includes('[사전검토메모:') ? `[사전검토메모: ${reviewMemo}]\n${rawResult}`.trim() : rawResult;
-    const result = investigationNote && !withReview.includes('[현장조사메모:') ? `${withReview}\n[현장조사메모: ${investigationNote}]`.trim() : withReview;
-    if (result.length > 2000 || officer.length > 50) throw new ApiError(400, '담당자 또는 안내 내용이 너무 깁니다.');
+    if (rawResult.length > 2000 || officer.length > 50 || reviewMemo.length > 200 || investigationNote.length > 200) throw new ApiError(400, '담당자, 메모 또는 안내 내용이 너무 깁니다.');
     const params = new URLSearchParams({ id: `eq.${body.id}`, process_status: 'neq.취소' });
     if (body.updatedAt) {
       if (typeof body.updatedAt !== 'string' || !Number.isFinite(Date.parse(body.updatedAt))) throw new ApiError(400, '접수 변경 시각을 확인해 주세요.');
       params.set('updated_at', `eq.${body.updatedAt}`);
     }
-    const rows = await userData(token, `citizen_complaints?${params}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result, officer_name: officer, updated_at: new Date().toISOString(), ...(Object.hasOwn(body,'dueDate')?{due_date:dueDate || null}:{}), ...(reviewMemo?{review_memo:reviewMemo}:{}), ...(investigationNote?{investigation_note:investigationNote}:{}) }) });
+    const rows = await userData(token, `citizen_complaints?${params}`, { method: 'PATCH', body: JSON.stringify({ process_status: body.status, result:rawResult, officer_name: officer, updated_at: new Date().toISOString(), ...(Object.hasOwn(body,'dueDate')?{due_date:dueDate || null}:{}), ...(Object.hasOwn(body,'reviewMemo')?{review_memo:reviewMemo}:{}), ...(Object.hasOwn(body,'investigationNote')?{investigation_note:investigationNote}:{}) }) });
     if (!rows.length) throw new ApiError(409, '접수가 변경되었거나 취소됐어요. 새로고침 후 다시 확인해 주세요.');
     return res.status(200).json({ ok: true });
   } catch (error) { return fail(res, error); }

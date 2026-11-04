@@ -10,7 +10,7 @@ const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));await ne
 
 async function boot(page='mypage',{search='',hash=''}={}){
  const elements=new Map(),requests=[],intervals=[],listeners={},forms=new Map();let failList=false,failMutation=false,revision=initialRevision;
- const make=()=>({value:'',textContent:'',hidden:true,disabled:false,dataset:{},handlers:{},attributes:{},classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listenerCounts ||= {};this.listenerCounts[k]=(this.listenerCounts[k]||0)+1;this.handlers[k]=v;},querySelector(){return make();},querySelectorAll(){return [];},closest(){return null;},append(){},prepend(){}});
+ const make=()=>({value:'',textContent:'',hidden:true,disabled:false,dataset:{},handlers:{},attributes:{},classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},addEventListener(k,v){this.listenerCounts ||= {};this.listenerCounts[k]=(this.listenerCounts[k]||0)+1;this.handlers[k]=v;},querySelector(){return make();},querySelectorAll(){return [];},closest(){return null;},append(){},prepend(){},focus(){}});
  function form(kind){
   const f=make();f.dataset=kind==='member'?{id,complaintAction:'supplement'}:{receiptId:id,updatedAt:initialRevision};
   f.fields=kind==='member'?{text:{value:''}}:{status:{value:'보완요청'},officer:{value:'담당자'},result:{value:'추가 내용 요청'}};
@@ -52,6 +52,7 @@ async function boot(page='mypage',{search='',hash=''}={}){
     return response(page==='admin'?{ok:true,complaints:[complaint],pagination,summary:{totalComplaints:1,pending:0,processing:1,completed:0},recentSessions:[]}:{ok:true,complaints:[{id,complaintNo:'YSU-1',summary:'도로 상담',processStatus:'보완요청',supplements:[]}],pagination});
    }
    if(path.startsWith('/api/counters'))return response({ok:true,counters:[{id,counterName:'테스트 창구',isOpen:true,updatedAt:revision,currentCallingNo:1,waitingCount:1}],tickets:[]});
+   if(path==='/api/admin')return response({ok:true,knowledges:[{id:7,title:'검토 중인 지식',content:'확인된 내용',category_code:'일반행정',approval_status:'검토대기',keywords:['검토']}]});
    throw new Error('unexpected request '+path);
   },
  };
@@ -113,6 +114,18 @@ test('status selection resets list paging and ticket polling leaves receipt draf
 
 test('integration registers knowledge approval and report actions exactly once',async()=>{
  const ui=await boot('admin');assert.equal(ui.get('knowledgeForm').listenerCounts.submit,1);assert.equal(ui.get('adminLeaderReport').listenerCounts.click,1);
+});
+test('counter view does not fabricate queue counts or associate unrelated complaints with a called number',async()=>{
+ const ui=await boot('admin');const html=ui.get('adminCounters').innerHTML;
+ assert.doesNotMatch(html,/data-counter-action="crowd"|사전 접수 맥락 자동 호출|도로 상담/);
+ assert.match(html,/다음 번호 호출/);
+});
+test('administrator can load an existing knowledge draft into the approval form',async()=>{
+ const ui=await boot('admin');await flush();
+ const button={dataset:{editKnowledge:'7'},closest(){return this;}};
+ await ui.get('adminKnowledges').handlers.click({target:button});
+ assert.equal(ui.get('knowledgeId').value,'7');assert.equal(ui.get('knowledgeTitle').value,'검토 중인 지식');
+ assert.equal(ui.get('knowledgeContent').value,'확인된 내용');assert.equal(ui.get('knowledgeEditNotice').hidden,false);
 });
 
 test('privacy request retries keep the message and request ID after a lost response',async()=>{
