@@ -313,7 +313,7 @@
     el.innerHTML = `
       <div class="metrics-row" style="margin-bottom:8px;">
         <div class="gov-metric-card"><div class="gov-metric-lbl">챗봇 자체 완결률</div><div class="gov-metric-val">${a.selfResolveRate ?? 0}%</div><p class="admin-mini">자체완결 ${a.selfResolvedCount ?? 0}건 / 이관 ${a.transferredCount ?? 0}건</p></div>
-        <div class="gov-metric-card"><div class="gov-metric-lbl">야간·공휴일 24시 응대</div><div class="gov-metric-val">${a.nightHolidayCount ?? 0}건</div><p class="admin-mini">일과시간(09~18시) 외 인입</p></div>
+        <div class="gov-metric-card"><div class="gov-metric-lbl">야간·주말 응대</div><div class="gov-metric-val">${a.nightHolidayCount ?? 0}건</div><p class="admin-mini">주말 또는 평일 09~18시 외 인입 · 공휴일 별도 판별 없음</p></div>
         <div class="gov-metric-card"><div class="gov-metric-lbl">기존 기록의 모델 참고 점수</div><div class="gov-metric-val">${a.avgConfidence>0?`${a.avgConfidence}점`:'미산출'}</div><p class="admin-mini">정답률이 아닙니다. 새 안내는 승인 자료와의 연결 여부를 확인합니다.</p></div>
         <div class="gov-metric-card"><div class="gov-metric-lbl">법정기한 경과(재안내 대상)</div><div class="gov-metric-val">${a.overdueCount ?? 0}건</div><p class="admin-mini">처리기한 경과 미결 민원</p></div>
       </div>

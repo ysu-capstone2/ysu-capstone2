@@ -1,6 +1,6 @@
 import { adminSession, userData, fail, method } from './_auth.js';
 import { listQuery, listPage } from './_complaints.js';
-function buildAnalytics(complaints = [], sessions = []) {
+export function buildAnalytics(complaints = [], sessions = [], now = Date.now()) {
   const safeComplaints = Array.isArray(complaints) ? complaints : [];
   const safeSessions = Array.isArray(sessions) ? sessions : [];
   const isResolved = s => s.status === '자체완결' || s.status === '자체해결';
@@ -41,7 +41,7 @@ function buildAnalytics(complaints = [], sessions = []) {
   const byDateMap = new Map();
   const byWeekMap = new Map();
   const byMonthMap = new Map();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(now + 9 * 3600000).toISOString().slice(0, 10);
   let overdueCount = 0;
 
   const inferCategory = (dept = '', text = '') => {
