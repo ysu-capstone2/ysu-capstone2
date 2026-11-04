@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import auth from '../api/auth.js';
 import lookup from '../api/lookup.js';
 import reserve from '../api/reserve.js';
-import stats from '../api/stats.js';
+import stats, { buildAnalytics } from '../api/stats.js';
 import admin from '../api/admin.js';
 import counters from '../api/counters.js';
 const originalFetch=globalThis.fetch;
@@ -144,6 +144,16 @@ test('team leader statistics compute self-resolution rate, low-confidence keywor
  assert.equal(statRes.code,200);assert.equal(statRes.body.analytics.selfResolvedCount,1);assert.equal(statRes.body.analytics.transferredCount,2);
  assert.equal(statRes.body.analytics.lowResolveRateDetected,true);assert.equal(statRes.body.analytics.byCategory['건축/분쟁/인허가'],2);
  assert.equal(statRes.body.analytics.byWeek.length,1);assert.equal(statRes.body.analytics.byMonth.length,1);
- assert.equal(statRes.body.analytics.overdueCount,1);assert.equal(statRes.body.analytics.byDepartment['건축과'],2);
+ assert.equal(statRes.body.analytics.byDepartment['건축과'],2);
  assert.ok(statRes.body.analytics.lowConfidenceClusters.some(c=>c.keyword==='불법건축물'&&c.needsKnowledgeUpdate===true));
+});
+test('overdue statistics use the Korean calendar date and exclude completed or cancelled receipts',()=>{
+ const now=Date.parse('2026-10-23T15:30:00Z'); // October 24 in Korea.
+ const rows=[
+  {due_date:'2026-10-23',process_status:'접수'},
+  {due_date:'2026-10-24',process_status:'처리중'},
+  {due_date:'2026-10-23',process_status:'완료'},
+  {due_date:'2026-10-23',process_status:'취소'},
+ ];
+ assert.equal(buildAnalytics(rows,[],now).overdueCount,1);
 });
