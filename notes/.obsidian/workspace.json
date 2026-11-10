@@ -4,24 +4,39 @@
     "type": "split",
     "children": [
       {
-        "id": "b2aaa83d01dcd26f",
+        "id": "303673935e3dc0ce",
         "type": "tabs",
         "children": [
           {
-            "id": "ffbbef980b99699a",
+            "id": "4b771c6c2ba3d6f9",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Academic/연성대 강의노트/3학년 2학기/딥러닝/6주차/2023100154_이인수.md",
+                "file": "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Github/stellar-classification/docs/research_blog_stellar_classification.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2023100154_이인수"
+              "title": "research_blog_stellar_classification"
+            }
+          },
+          {
+            "id": "18342a1f2c1bf2dd",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/keys/k-exaone-api-keys.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "k-exaone-api-keys"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -188,8 +203,11 @@
       "bases:새 베이스 생성하기": false
     }
   },
-  "active": "ffbbef980b99699a",
+  "active": "18342a1f2c1bf2dd",
   "lastOpenFiles": [
+    "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Github/obtec-research-blog/docs/research_blog_stellar_classification.md",
+    "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Github/stellar-classification/docs/research_blog_stellar_classification.md",
+    "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Github/cloud-mlops/notes/DOCKER_EC2_GUIDE.md",
     "Vercel 및 Supabase 연동 작업 내역.md",
     "캡스톤 전체 설계 및 17개 프로세스 구현 완료 보고서.md",
     "file:/Users/yiinsu/Library/CloudStorage/GoogleDrive-ii3289857@gmail.com/My Drive/Academic/연성대 강의노트/3학년 2학기/클라우드 MLOps/6주차/week06-midterm-notice.md",
